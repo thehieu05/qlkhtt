@@ -1,0 +1,909 @@
+/* ==========================================================================
+   STYLE.CSS - GIAO DIỆN HỆ THỐNG QUẢN LÝ & CHIA SẺ KHÓA HỌC TRỰC TUYẾN
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. CẤU HÌNH CHUNG & BỐ CỤC
+   -------------------------------------------------------------------------- */
+body {
+    background-color: #f8fafc;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+}
+
+/* Thanh thông báo khuyến mãi trên cùng */
+.top-promo-bar {
+    background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b);
+    color: #fff;
+    font-size: 0.875rem;
+    padding: 8px 0;
+}
+
+/* Thanh điều hướng chính */
+.main-navbar {
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Logo thương hiệu EduNova */
+.edunova-brand {
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.edunova-brand:hover {
+    transform: translateY(-2px);
+}
+
+.edunova-brand:hover .brand-icon-wrap {
+    transform: scale(1.08) rotate(-3deg);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.45);
+}
+
+.brand-icon-wrap {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #7c3aed 100%);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+
+.brand-icon-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: 12px 12px 0 0;
+    pointer-events: none;
+}
+
+.brand-text-wrap {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1;
+}
+
+.brand-name {
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.6px;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    line-height: 1.1;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.brand-name .brand-nova {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-left: 1px;
+}
+
+.brand-name .brand-spark {
+    color: #f59e0b;
+    font-size: 1rem;
+    margin-left: 3px;
+    display: inline-block;
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.4));
+    animation: novaPulse 2.8s infinite ease-in-out;
+}
+
+@keyframes novaPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    50% {
+        transform: scale(1.3) rotate(15deg);
+        opacity: 1;
+    }
+}
+
+.brand-tagline {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: #64748b;
+    margin-top: 3px;
+    line-height: 1;
+}
+
+/* Biến thể logo cho Footer nền tối */
+.edunova-brand.brand-dark .brand-name {
+    color: #ffffff;
+}
+
+.edunova-brand.brand-dark .brand-tagline {
+    color: #94a3b8;
+}
+
+/* Thanh menu phụ */
+.sub-navbar {
+    background: #ffffff;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.sub-navbar .nav-link {
+    color: #475569;
+    font-weight: 500;
+    padding: 10px 14px;
+}
+
+.sub-navbar .nav-link:hover {
+    color: #2563eb;
+}
+
+/* Khối Hero Banner */
+.hero-section {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #e0e7ff 100%);
+    border-radius: 20px;
+    padding: 45px 35px;
+    margin-top: 24px;
+}
+
+/* Thẻ danh mục (Category Card) */
+.cat-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    transition: all 0.25s ease;
+}
+
+.cat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+    border-color: #93c5fd;
+}
+
+/* Khối Flash Sale */
+.flash-sale-box {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    border: 2px solid #fecdd3;
+    border-radius: 20px;
+    padding: 28px;
+}
+
+.timer-badge {
+    background: #e11d48;
+    color: #fff;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 1.1rem;
+}
+
+/* Thẻ khóa học (Course Card) */
+.course-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    transition: all 0.25s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.course-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.course-img-wrap {
+    position: relative;
+    height: 175px;
+    overflow: hidden;
+    background: #e2e8f0;
+}
+
+.course-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.course-card:hover .course-img-wrap img {
+    transform: scale(1.05);
+}
+
+.discount-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: #e11d48;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+}
+
+.course-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 48px;
+    text-decoration: none;
+}
+
+.course-title:hover {
+    color: #2563eb;
+}
+
+.price-new {
+    color: #e11d48;
+    font-weight: 800;
+    font-size: 1.15rem;
+}
+
+.price-old {
+    color: #94a3b8;
+    text-decoration: line-through;
+    font-size: 0.85rem;
+}
+
+/* Thẻ Bảng giá gói hội viên */
+.pricing-card {
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    transition: 0.25s;
+}
+
+.pricing-card.popular {
+    border: 2px solid #2563eb;
+    background: linear-gradient(180deg, #eff6ff 0%, #ffffff 40%);
+}
+
+/* Footer */
+footer {
+    background: #0f172a;
+    color: #cbd5e1;
+}
+
+/* --------------------------------------------------------------------------
+   2. KHUNG PHẢN HỒI THẬT TỪ KHÁCH HÀNG (FEEDBACK SECTION)
+   -------------------------------------------------------------------------- */
+.real-feedback-section {
+    background: radial-gradient(circle at 50% 0%, #1f2128 0%, #111216 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 38px 32px 28px 32px;
+    color: #ffffff;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+    position: relative;
+    overflow: hidden;
+}
+
+.real-feedback-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    width: 60%;
+    height: 120px;
+    background: radial-gradient(ellipse at center, rgba(234, 179, 8, 0.08) 0%, rgba(234, 179, 8, 0) 70%);
+    pointer-events: none;
+}
+
+.feedback-eyebrow {
+    color: #f59e0b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.feedback-title {
+    font-size: 2.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+}
+
+.feedback-subtitle {
+    color: #9ca3af;
+    font-size: 0.95rem;
+    margin-bottom: 0;
+}
+
+.btn-view-all-feedback {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #facc15 !important;
+    border-radius: 999px;
+    padding: 7px 18px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(4px);
+}
+
+.btn-view-all-feedback:hover {
+    background: rgba(245, 158, 11, 0.2);
+    color: #ffffff !important;
+    transform: translateX(3px);
+    border-color: #f59e0b;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+}
+
+/* Phone Mockup Card */
+.phone-feedback-card {
+    background: #0b0d12;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 12px 10px 14px 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 480px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.phone-feedback-card:hover {
+    transform: translateY(-8px);
+    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.75), 0 0 22px rgba(245, 158, 11, 0.18);
+}
+
+.phone-pill-badge {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.05);
+    color: #f3f4f6;
+    border-radius: 999px;
+    padding: 2px 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    align-self: flex-start;
+    margin-bottom: 8px;
+    letter-spacing: 0.3px;
+}
+
+/* Phone Top System Bar */
+.phone-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    padding: 0 6px 4px 6px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+}
+
+/* Phone Chat Header */
+.phone-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 4px 8px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 8px;
+}
+
+.chat-user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.chat-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.chat-user-text {
+    min-width: 0;
+}
+
+.chat-username {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.chat-user-status {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    line-height: 1.2;
+}
+
+.chat-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+/* Quick Action Chips */
+.quick-chips-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.quick-chip {
+    background: #1e293b;
+    color: #60a5fa;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Chat Message Bubbles */
+.chat-conversation {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+}
+
+.chat-bubble-customer {
+    align-self: flex-end;
+    background: #1e293b;
+    color: #f1f5f9;
+    padding: 6px 10px;
+    border-radius: 12px 12px 2px 12px;
+    font-size: 0.73rem;
+    max-width: 85%;
+    line-height: 1.35;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chat-bubble-shop {
+    align-self: flex-start;
+    background: #27272a;
+    color: #f4f4f5;
+    padding: 7px 10px;
+    border-radius: 12px 12px 12px 2px;
+    font-size: 0.72rem;
+    max-width: 90%;
+    line-height: 1.35;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Banking Payment Receipt Cards */
+.bill-receipt-vcb {
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 12px;
+    padding: 10px 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    margin: 4px 0;
+    border: 1px solid #e2e8f0;
+}
+
+.bill-receipt-red {
+    background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #450a0a 100%);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 10px 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    margin: 4px 0;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.bill-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.bill-amount {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 3px 0;
+}
+
+.bill-details {
+    font-size: 0.65rem;
+    line-height: 1.3;
+}
+
+.feedback-bottom-bar {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 18px;
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.feedback-link-gold {
+    color: #facc15;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.feedback-link-gold:hover {
+    color: #ffffff;
+    text-decoration: underline;
+    transform: translateX(2px);
+}
+
+/* Modal styling */
+.feedback-modal .modal-content {
+    background: #14161c;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+}
+
+.feedback-filter-btn {
+    border-radius: 999px;
+    font-size: 0.8rem;
+    padding: 5px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    transition: all 0.2s;
+}
+
+.feedback-filter-btn:hover,
+.feedback-filter-btn.active {
+    background: #f59e0b;
+    border-color: #f59e0b;
+    color: #0f172a;
+    font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   3. GIAO DIỆN TRANG ĐĂNG NHẬP & ĐĂNG KÝ (AUTH SPLIT CARD)
+   -------------------------------------------------------------------------- */
+.auth-page-bg {
+    background-color: #faf9f6;
+}
+
+.auth-split-card {
+    background: #ffffff;
+    border-radius: 26px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 20px 45px -12px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(15, 23, 42, 0.03);
+    overflow: hidden;
+    max-width: 1040px;
+    margin: 16px auto 36px auto;
+}
+
+.auth-brand-col {
+    background: #11141a;
+    background: radial-gradient(circle at 100% 100%, #1c202a 0%, #101217 100%);
+    color: #ffffff;
+    padding: 44px 38px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.auth-brand-col::before {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    right: -60px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    pointer-events: none;
+}
+
+.auth-brand-col::after {
+    content: '';
+    position: absolute;
+    bottom: -130px;
+    right: -130px;
+    width: 460px;
+    height: 460px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    pointer-events: none;
+}
+
+.auth-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 4px 14px 4px 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    align-self: flex-start;
+}
+
+.auth-pill-badge .badge-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f59e0b;
+    color: #11141a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+.auth-benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.auth-benefit-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fbbf24;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.auth-benefit-text {
+    color: #cbd5e1;
+    font-size: 0.86rem;
+    line-height: 1.45;
+    font-weight: 500;
+}
+
+.auth-form-col {
+    background: #ffffff;
+    padding: 46px 48px;
+}
+
+@media (max-width: 767.98px) {
+    .auth-form-col {
+        padding: 30px 20px;
+    }
+    .auth-brand-col {
+        padding: 30px 20px;
+    }
+}
+
+.auth-segmented-tabs {
+    background: #f1f3f6;
+    border-radius: 999px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+    max-width: 320px;
+    margin-bottom: 26px;
+}
+
+.auth-segmented-tabs .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 7px 18px;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    text-align: center;
+    user-select: none;
+}
+
+.auth-segmented-tabs .tab-btn.active {
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.login-input-group {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1.5px solid #e2e8f0;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.login-input-group:focus-within {
+    border-color: #c79234;
+    box-shadow: 0 0 0 4px rgba(199, 146, 52, 0.12);
+}
+
+.login-input-group .input-group-text {
+    border: none;
+    background: transparent;
+    font-size: 1rem;
+    color: #94a3b8;
+}
+
+.login-input-group .form-control {
+    border: none;
+    font-size: 0.92rem;
+    box-shadow: none !important;
+    padding: 11px 8px;
+    background: transparent;
+    color: #1e293b;
+}
+
+.btn-auth-gold {
+    background: linear-gradient(135deg, #d49b29 0%, #ba831d 100%);
+    color: #2b1f09;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-size: 0.95rem;
+    letter-spacing: 0.2px;
+    transition: all 0.25s ease;
+}
+
+.btn-auth-gold:hover {
+    background: linear-gradient(135deg, #e0a733 0%, #c88f24 100%);
+    color: #140d02;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(199, 146, 52, 0.32);
+}
+
+/* Nút hỗ trợ nổi góc dưới bên phải (Floating Support Widget) */
+.floating-support-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1040;
+    background: #14171f;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 8px 18px 8px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-support-btn:hover {
+    transform: translateY(-3px);
+    border-color: #d49b29;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55), 0 0 16px rgba(212, 155, 41, 0.25);
+    color: #ffffff;
+}
+
+.floating-support-btn .support-icon-badge {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #d49b29;
+    color: #14171f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.floating-support-btn .support-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+.floating-support-btn .support-sub {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    line-height: 1.2;
+}
+
+@media (max-width: 576px) {
+    .floating-support-btn {
+        bottom: 16px;
+        right: 16px;
+        padding: 6px 14px 6px 6px;
+    }
+}
+
+/* Định dạng Breadcrumb trang đăng nhập căn chỉnh với card */
+.auth-breadcrumb-wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 16px 12px 4px 16px;
+}
+
+.auth-breadcrumb {
+    font-size: 0.84rem !important;
+}
+
+.auth-breadcrumb .breadcrumb-item a {
+    color: #64748b !important;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.auth-breadcrumb .breadcrumb-item a:hover {
+    color: #2563eb !important;
+}
+
+.auth-breadcrumb .breadcrumb-item.active {
+    color: #334155 !important;
+    font-weight: 600;
+}
+
+.auth-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+    content: "›" !important;
+    color: #94a3b8;
+    font-size: 0.95rem;
+    padding: 0 8px;
+    vertical-align: -1px;
+}
+
+
+
