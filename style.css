@@ -629,8 +629,8 @@ footer {
 }
 
 .auth-brand-col {
-    background: #11141a;
-    background: radial-gradient(circle at 100% 100%, #1c202a 0%, #101217 100%);
+    background: #0e1013;
+    background: radial-gradient(circle at 100% 100%, #0a0a0e 0%, #101011 100%);
     color: #ffffff;
     padding: 44px 38px;
     position: relative;

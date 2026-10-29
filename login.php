@@ -102,18 +102,16 @@ require_once 'menu.php';
                     </div>
 
                     <!-- Tiêu đề & Giới thiệu -->
-                    <div class="text-warning fw-bold text-uppercase small mb-2" style="letter-spacing: 1.5px; font-size: 0.75rem;">
+                    <div class="text-warning fw-bold text-uppercase small mb-2" style="letter-spacing: 1.5px; font-size: 2rem;">
                         HỌC TẬP LIỀN MẠCH
                     </div>
-                    <h2 class="text-white fw-bold mb-3" style="font-size: 1.95rem; line-height: 1.25;">
-                        Mọi khóa học của bạn, luôn sẵn sàng.
+                    <h2 class="text-white fw-bold mb-3" style="font-size: 1rem; line-height: 1.25;">
+                        Mọi khóa học của bạn luôn sẵn sàng.
                     </h2>
-                    <p class="text-secondary small mb-4" style="line-height: 1.6; font-size: 0.88rem;">
-                        Đăng nhập một lần để quản lý đơn hàng, mở lại link học và nhận hỗ trợ nhanh hơn.
-                    </p>
+
 
                     <!-- 3 Tiện ích nổi bật -->
-                    <div class="d-flex flex-column gap-3 mb-5">
+                    <div class="d-flex flex-column gap-3 mb-5 mt-5">
                         <div class="auth-benefit-item">
                             <div class="auth-benefit-icon">
                                 <i class="bi bi-journal-bookmark-fill"></i>
@@ -144,8 +142,8 @@ require_once 'menu.php';
                 <!-- Thông tin liên hệ hỗ trợ phía dưới -->
                 <div class="pt-4 border-top border-secondary border-opacity-25 mt-3">
                     <div class="text-secondary small mb-1" style="font-size: 0.78rem;">Cần trợ giúp?</div>
-                    <a href="https://zalo.me/0583953426" target="_blank" class="text-white fw-bold small text-decoration-none d-inline-flex align-items-center gap-1">
-                        Nhắn Zalo <span class="text-warning">0583 953 426</span> <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.72rem;"></i>
+                    <a href="https://zalo.me/0773308885" target="_blank" class="text-white fw-bold small text-decoration-none d-inline-flex align-items-center gap-1">
+                        Nhắn Zalo <span class="text-warning">0773308885</span> <i class="bi bi-box-arrow-up-right ms-1" style="font-size: 0.72rem;"></i>
                     </a>
                 </div>
             </div>
@@ -179,16 +177,10 @@ require_once 'menu.php';
 
                 <!-- TAB 1: FORM ĐĂNG NHẬP -->
                 <div id="authFormLogin" style="<?= $active_tab === 'login' ? '' : 'display: none;' ?>">
-                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">
-                        CHÀO BẠN QUAY LẠI
+                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-4" style="font-size: 2rem; letter-spacing: 1px;">
+                        CHÀO MỪNG BẠN QUAY LẠI 
                     </div>
-                    <h3 class="fw-bold text-dark mb-1" style="font-size: 1.65rem;">
-                        Đăng nhập vào tài khoản
-                    </h3>
-                    <p class="text-muted small mb-4" style="font-size: 0.88rem;">
-                        Dùng email đã đăng ký hoặc email bạn dùng khi mua khóa học.
-                    </p>
-
+ 
                     <form method="POST" action="login.php">
                         <input type="hidden" name="action" value="login">
 
@@ -200,9 +192,9 @@ require_once 'menu.php';
                                     <i class="bi bi-envelope"></i>
                                 </span>
                                 <input type="text" name="username" class="form-control" placeholder="ban@example.com hoặc giangvien" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
-                                <span class="input-group-text pe-3 text-muted">
+                                <!-- <span class="input-group-text pe-3 text-muted">
                                     <i class="bi bi-qr-code-scan" style="font-size: 0.9rem;" title="Quét tài khoản"></i>
-                                </span>
+                                </span> -->
                             </div>
                         </div>
 
@@ -210,7 +202,7 @@ require_once 'menu.php';
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold text-dark mb-0">Mật khẩu</label>
-                                <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ Hotline/Zalo: 0583 953 426 để được cấp lại mật khẩu ngay!');" class="small text-muted text-decoration-none" style="font-size: 0.8rem;">
+                                <a href="javascript:void(0)" onclick="alert('Vui lòng liên hệ Hotline/Zalo: 0773 308 885 để được cấp lại mật khẩu ngay!');" class="small text-muted text-decoration-none" style="font-size: 0.8rem;">
                                     Tạo / quên mật khẩu?
                                 </a>
                             </div>
@@ -245,22 +237,20 @@ require_once 'menu.php';
 
                 <!-- TAB 2: FORM TẠO TÀI KHOẢN -->
                 <div id="authFormRegister" style="<?= $active_tab === 'register' ? '' : 'display: none;' ?>">
-                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-1" style="font-size: 0.75rem; letter-spacing: 1px;">
-                        THÀNH VIÊN MỚI
+                    
+                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-1" style="font-size: 2rem; letter-spacing: 1px;">
+                        TẠO TÀI KHOẢN EduNova
                     </div>
-                    <h3 class="fw-bold text-dark mb-1" style="font-size: 1.65rem;">
-                        Tạo tài khoản EduNova
-                    </h3>
                     <p class="text-muted small mb-4" style="font-size: 0.88rem;">
                         Nhận ngay quyền truy cập thư viện khóa học trực tuyến.
                     </p>
-
+                    
                     <form method="POST" action="login.php">
                         <input type="hidden" name="action" value="register">
 
                         <!-- Họ và tên -->
-                        <div class="mb-3">
-                            <label class="form-label small fw-semibold text-dark mb-1">Họ và tên của bạn</label>
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold text-dark mb-1">Họ và tên </label>
                             <div class="input-group login-input-group">
                                 <span class="input-group-text ps-3">
                                     <i class="bi bi-person"></i>
@@ -270,7 +260,7 @@ require_once 'menu.php';
                         </div>
 
                         <!-- Tên đăng nhập -->
-                        <div class="mb-3">
+                        <div class="mb-2">
                             <label class="form-label small fw-semibold text-dark mb-1">Tên đăng nhập (viết liền)</label>
                             <div class="input-group login-input-group">
                                 <span class="input-group-text ps-3">

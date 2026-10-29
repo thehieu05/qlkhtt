@@ -1,5 +1,5 @@
 <!-- SUB-NAVBAR (Thanh menu điều hướng phụ) -->
-<div class="sub-navbar d-none d-lg-block">
+<div class="sub-navbar d-none d-lg-block ">
     <div class="container d-flex justify-content-between align-items-center">
         <ul class="nav">
             <li class="nav-item">
@@ -27,7 +27,7 @@
             <?php endif; ?>
         </ul>
         <div class="text-muted small fw-semibold">
-            <i class="bi bi-telephone-inbound-fill text-success me-1"></i> Zalo hỗ trợ: <span class="text-dark">0583 953 426</span>
+            <i class="bi bi-telephone-inbound-fill text-success me-1"></i> Zalo hỗ trợ: <span class="text-dark">0773 308 885</span>
         </div>
     </div>
 </div>

@@ -1,24 +1,24 @@
 <!-- CAM KẾT DỊCH VỤ -->
     <div class="bg-white border rounded-4 p-4 mt-5 shadow-sm">
         <div class="row g-4 text-center">
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-3 border border-light rounded-3 p-3">
                 <i class="bi bi-stopwatch-fill fs-2 text-primary"></i>
                 <h6 class="fw-bold mt-2 mb-1">Khoảng 30 giây</h6>
                 <p class="text-muted small mb-0">Nhận link bài giảng ngay sau khi đăng ký</p>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-3 border border-light rounded-3 p-3">
                 <i class="bi bi-infinity fs-2 text-success"></i>
                 <h6 class="fw-bold mt-2 mb-1">Học lại lâu dài</h6>
                 <p class="text-muted small mb-0">Không giới hạn số lần xem video bài giảng</p>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-3 border border-light rounded-3 p-3">
                 <i class="bi bi-laptop fs-2 text-warning"></i>
                 <h6 class="fw-bold mt-2 mb-1">Đa thiết bị</h6>
                 <p class="text-muted small mb-0">Học thuận tiện trên điện thoại, máy tính</p>
             </div>
-            <div class="col-6 col-md-3">
+            <div class="col-6 col-md-3 border border-light rounded-3 p-3">
                 <i class="bi bi-headset fs-2 text-danger"></i>
-                <h6 class="fw-bold mt-2 mb-1">Zalo hỗ trợ 24/7</h6>
+                <h6 class="fw-bold mt-2 mb-1">Hỗ trợ 24/7</h6>
                 <p class="text-muted small mb-0">Xử lý nhanh chóng khi cần trợ giúp</p>
             </div>
         </div>
@@ -43,7 +43,7 @@
                     </div>
                     <div class="brand-text-wrap">
                         <span class="brand-name">Edu<span class="brand-nova">Nova</span><span class="brand-spark">✦</span></span>
-                        <span class="brand-tagline">Nền tảng Học trực tuyến</span>
+                        <span class="brand-tagline">Học tập & Phát triển</span>
                     </div>
                 </a>
                 <p class="small text-secondary">
@@ -56,14 +56,14 @@
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Công nghệ & Lập trình</a></li>
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Kinh doanh & Marketing</a></li>
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Thiết kế đồ họa & Video</a></li>
-                    <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Ngoại ngữ & Tin học</a></li>
+                    <!-- <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Ngoại ngữ & Tin học</a></li> -->
                     <li class="mb-2"><a href="index.php#phan-hoi" class="text-warning text-decoration-none"><i class="bi bi-patch-check-fill me-1"></i>Phản hồi từ học viên</a></li>
                 </ul>
             </div>
             <div class="col-6 col-lg-4">
                 <h6 class="text-white fw-bold mb-3">Liên hệ & Hỗ trợ</h6>
                 <ul class="list-unstyled small text-secondary">
-                    <li class="mb-2"><i class="bi bi-telephone-fill me-2 text-success"></i>Hotline / Zalo: 0583 953 426</li>
+                    <li class="mb-2"><i class="bi bi-telephone-fill me-2 text-success"></i>Hotline / Zalo: 0773308885</li>
                     <li class="mb-2"><i class="bi bi-envelope-fill me-2 text-warning"></i>Email: hotro@edunova.vn</li>
                     <li class="mb-2"><i class="bi bi-shield-lock-fill me-2 text-info"></i><a href="login.php" class="text-secondary text-decoration-none">Đăng nhập trang Quản trị (Giảng viên)</a></li>
                 </ul>
