@@ -1007,3 +1007,119 @@ footer {
     border-color: #2563eb;
     transform: translateY(-1px);
 }
+
+
+/* --------------------------------------------------------------------------
+   4. THANH TÌM KIẾM BO TRÒN HIỆN ĐẠI (EDUNOVA BLUE SEARCH PILL)
+   -------------------------------------------------------------------------- */
+.edunova-search-form {
+    display: flex;
+    align-items: center;
+    max-width: 580px;
+}
+
+.edunova-search-box {
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1.5px solid #dbeafe;
+    border-radius: 12px;
+    padding: 3px 4px 3px 14px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.04);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.edunova-search-box:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.09);
+}
+
+.edunova-search-box:focus-within {
+    border-color: #2563eb;
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15), 0 4px 16px rgba(37, 99, 235, 0.08);
+}
+
+.search-box-icon {
+    font-size: 1.15rem;
+    color: #2563eb;
+    margin-right: 12px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.edunova-search-box:focus-within .search-box-icon {
+    color: #1d4ed8;
+    transform: scale(1.08);
+}
+
+.search-box-input {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent;
+    flex-grow: 1;
+    font-size: 0.94rem;
+    color: #0f172a;
+    padding: 7px 4px;
+    min-width: 0;
+}
+
+.search-box-input::placeholder {
+    color: #64748b;
+    font-size: 0.92rem;
+    font-weight: 400;
+}
+
+.search-box-clear {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    padding: 0 8px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.search-box-clear:hover {
+    color: #ef4444;
+}
+
+.search-box-btn {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 22px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.2px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.28);
+}
+
+.search-box-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.38);
+}
+
+.search-box-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+@media (max-width: 991.98px) {
+    .edunova-search-form {
+        max-width: 100%;
+        width: 100%;
+    }
+}

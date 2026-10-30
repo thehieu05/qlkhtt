@@ -64,16 +64,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 }
-
-// Nhúng Header & Menu chung
 require_once 'header.php';
 require_once 'menu.php';
 ?>
-
-<!-- VÙNG NỘI DUNG CHÍNH (Được bọc trong container, footer.php sẽ đóng container) -->
 <div class="container pb-4 auth-page-bg">
-
-    <!-- BREADCRUMB ĐIỀU HƯỚNG -->
     <div class="auth-breadcrumb-wrap">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb auth-breadcrumb mb-0">
@@ -88,29 +82,20 @@ require_once 'menu.php';
             </ol>
         </nav>
     </div>
-
-    <!-- CARD CHÍNH CHIA 2 CỘT (SPLIT CARD) -->
     <div class="auth-split-card">
         <div class="row g-0">
-            <!-- CỘT TRÁI: KHUNG ĐEN THƯƠNG HIỆU & LỢI ÍCH HỌC TẬP -->
             <div class="col-lg-5 auth-brand-col">
                 <div>
-                    <!-- Badge thương hiệu -->
                     <div class="auth-pill-badge mb-4">
                         <span class="badge-icon">E</span>
                         <span>EduNova</span>
                     </div>
-
-                    <!-- Tiêu đề & Giới thiệu -->
                     <div class="text-warning fw-bold text-uppercase small mb-2" style="letter-spacing: 1.5px; font-size: 2rem;">
                         HỌC TẬP LIỀN MẠCH
                     </div>
                     <h2 class="text-white fw-bold mb-3" style="font-size: 1rem; line-height: 1.25;">
                         Mọi khóa học của bạn luôn sẵn sàng.
                     </h2>
-
-
-                    <!-- 3 Tiện ích nổi bật -->
                     <div class="d-flex flex-column gap-3 mb-5 mt-5">
                         <div class="auth-benefit-item">
                             <div class="auth-benefit-icon">

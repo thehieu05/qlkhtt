@@ -64,16 +64,26 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
                 </ul>
             </div>
 
-            <!-- Thanh Tìm kiếm -->
-            <form class="d-flex flex-grow-1 mx-lg-3 my-2 my-lg-0" method="GET" action="index.php">
-                <div class="input-group">
-                    <input type="text" name="q" class="form-control" placeholder="Tìm khóa học lập trình, marketing, ngoại ngữ..." value="<?= htmlspecialchars($search) ?>">
-                    <button class="btn btn-outline-secondary bg-white text-primary" type="submit">
-                        <i class="bi bi-search"></i> Tìm
+            <!-- Thanh Tìm kiếm bo tròn hiện đại đồng bộ màu xanh EduNova -->
+            <form class="edunova-search-form flex-grow-1 mx-lg-3 my-2 my-lg-0" method="GET" action="index.php">
+                <div class="edunova-search-box">
+                    <i class="bi bi-search search-box-icon"></i>
+                    <input type="text" 
+                           name="q" 
+                           class="search-box-input" 
+                           placeholder="Thử tìm: Ngoại ngữ, Lập trình, Marketing..." 
+                           value="<?= htmlspecialchars($search) ?>" 
+                           autocomplete="off">
+                    <?php if (!empty($search)): ?>
+                        <a href="index.php" class="search-box-clear" title="Xóa tìm kiếm">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </a>
+                    <?php endif; ?>
+                    <button class="search-box-btn" type="submit">
+                        Tìm
                     </button>
                 </div>
             </form>
-            
 
             <!-- Khu vực Tài khoản -->
             <div class="d-flex align-items-center gap-2 ms-lg-3 mt-2 mt-lg-0">
