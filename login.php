@@ -5,10 +5,8 @@ $error = "";
 $success = "";
 $active_tab = "login";
 
-// Xử lý Form Submit (Đăng nhập hoặc Tạo tài khoản)
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST['action'] ?? 'login';
-
     if ($action === 'register') {
         $active_tab = "register";
         $reg_username = trim(mysqli_real_escape_string($conn, $_POST['reg_username'] ?? ''));
@@ -29,9 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $_SESSION['user_id'] = $new_id;
                     $_SESSION['fullname'] = $reg_fullname;
                     $_SESSION['role'] = 0; // Mặc định tài khoản học viên
-
-                    header("Location: index.php");
-                    exit();
+                    $success = "Tạo tài khoản thành công! Đang chuyển hướng về trang chủ...";
                 } else {
                     $error = "Có lỗi xảy ra khi tạo tài khoản: " . mysqli_error($conn);
                 }
@@ -40,26 +36,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
         // Đăng nhập
         $active_tab = "login";
-        $username = trim(mysqli_real_escape_string($conn, $_POST['username'] ?? ''));
+        $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
-
         $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
         $result = mysqli_query($conn, $sql);
-
         if ($result && mysqli_num_rows($result) === 1) {
             $row = mysqli_fetch_assoc($result);
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['fullname'] = $row['fullname'];
-            $_SESSION['role'] = (int)$row['role']; // 1: Giảng viên, 0: Học viên
-
-            // Phân quyền điều hướng
+            $_SESSION['role'] = (int)$row['role'];
             if ($row['role'] == 1) {
-                header("Location: ql_khoahoc.php"); // Giảng viên vào trang Quản trị
+                header("Location: ql_khoahoc.php");
             } else {
-                header("Location: index.php"); // Học viên về trang chủ
+                header("Location: index.php");
             }
             exit();
-        } else {
+        } 
+        else {
             $error = "Sai tên đăng nhập hoặc mật khẩu! Vui lòng thử lại.";
         }
     }
@@ -90,13 +83,13 @@ require_once 'menu.php';
                         <span class="badge-icon">E</span>
                         <span>EduNova</span>
                     </div>
-                    <div class="text-warning fw-bold text-uppercase small mb-2" style="letter-spacing: 1.5px; font-size: 2rem;">
+                    <div class="text-warning fw-bold text-uppercase small mb-2" style="letter-spacing: 1.5px; font-size: 0.88rem;">
                         HỌC TẬP LIỀN MẠCH
                     </div>
-                    <h2 class="text-white fw-bold mb-3" style="font-size: 1rem; line-height: 1.25;">
+                    <h2 class="text-white fw-bold mb-3" style="font-size: 1.45rem; line-height: 1.3;">
                         Mọi khóa học của bạn luôn sẵn sàng.
                     </h2>
-                    <div class="d-flex flex-column gap-3 mb-5 mt-5">
+                    <div class="d-flex flex-column gap-3 mb-5 mt-4">
                         <div class="auth-benefit-item">
                             <div class="auth-benefit-icon">
                                 <i class="bi bi-journal-bookmark-fill"></i>
@@ -124,7 +117,6 @@ require_once 'menu.php';
                     </div>
                 </div>
 
-                <!-- Thông tin liên hệ hỗ trợ phía dưới -->
                 <div class="pt-4 border-top border-secondary border-opacity-25 mt-3">
                     <div class="text-secondary small mb-1" style="font-size: 0.78rem;">Cần trợ giúp?</div>
                     <a href="https://zalo.me/0773308885" target="_blank" class="text-white fw-bold small text-decoration-none d-inline-flex align-items-center gap-1">
@@ -132,10 +124,7 @@ require_once 'menu.php';
                     </a>
                 </div>
             </div>
-
-            <!-- CỘT PHẢI: FORM ĐĂNG NHẬP / TẠO TÀI KHOẢN -->
             <div class="col-lg-7 auth-form-col">
-                <!-- Bộ chuyển Tab Segmented Control -->
                 <div class="auth-segmented-tabs">
                     <button type="button" class="tab-btn <?= $active_tab === 'login' ? 'active' : '' ?>" id="btnTabLogin" onclick="switchAuthTab('login')">
                         Đăng nhập
@@ -144,32 +133,27 @@ require_once 'menu.php';
                         Tạo tài khoản
                     </button>
                 </div>
-
-                <!-- Thông báo Lỗi / Thành công -->
                 <?php if (!empty($error)): ?>
                     <div class="alert alert-danger py-2 px-3 small d-flex align-items-center gap-2 mb-4 rounded-3" role="alert">
                         <i class="bi bi-exclamation-triangle-fill fs-6 flex-shrink-0 text-danger"></i>
                         <div><?= $error ?></div>
                     </div>
                 <?php endif; ?>
-
                 <?php if (!empty($success)): ?>
-                    <div class="alert alert-success py-2 px-3 small d-flex align-items-center gap-2 mb-4 rounded-3" role="alert">
-                        <i class="bi bi-check-circle-fill fs-6 flex-shrink-0 text-success"></i>
-                        <div><?= htmlspecialchars($success) ?></div>
+                    <div class="alert alert-success py-2.5 px-3 small d-flex align-items-center gap-2 mb-4 rounded-3 shadow-sm" role="alert">
+                        <i class="bi bi-check-circle-fill fs-5 flex-shrink-0 text-success"></i>
+                        <div>
+                            <div class="fw-bold">Tạo tài khoản thành công!</div>
+                            <div class="text-secondary small mt-0.5">Đang tự động đăng nhập và chuyển hướng về trang chủ trong giây lát...</div>
+                        </div>
                     </div>
                 <?php endif; ?>
-
-                <!-- TAB 1: FORM ĐĂNG NHẬP -->
                 <div id="authFormLogin" style="<?= $active_tab === 'login' ? '' : 'display: none;' ?>">
-                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-4" style="font-size: 2rem; letter-spacing: 1px;">
+                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-4" style="font-size: 1.35rem; letter-spacing: 0.5px;">
                         CHÀO MỪNG BẠN QUAY LẠI 
                     </div>
- 
                     <form method="POST" action="login.php">
                         <input type="hidden" name="action" value="login">
-
-                        <!-- Tên đăng nhập / Email -->
                         <div class="mb-3">
                             <label class="form-label small fw-semibold text-dark mb-1">Email hoặc Tên đăng nhập</label>
                             <div class="input-group login-input-group">
@@ -177,13 +161,8 @@ require_once 'menu.php';
                                     <i class="bi bi-envelope"></i>
                                 </span>
                                 <input type="text" name="username" class="form-control" placeholder="ban@example.com hoặc giangvien" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
-                                <!-- <span class="input-group-text pe-3 text-muted">
-                                    <i class="bi bi-qr-code-scan" style="font-size: 0.9rem;" title="Quét tài khoản"></i>
-                                </span> -->
                             </div>
                         </div>
-
-                        <!-- Mật khẩu -->
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold text-dark mb-0">Mật khẩu</label>
@@ -201,14 +180,10 @@ require_once 'menu.php';
                                 </button>
                             </div>
                         </div>
-
-                        <!-- Nút Đăng nhập màu vàng mật ong chuẩn mẫu -->
                         <button type="submit" class="btn btn-auth-gold w-100 fw-bold py-2.5 mb-3 shadow-sm d-flex align-items-center justify-content-center gap-2">
                             <span>Đăng nhập</span>
                             <i class="bi bi-arrow-right"></i>
                         </button>
-
-                        <!-- Chuyển sang Đăng ký -->
                         <div class="text-center small text-muted mt-3">
                             Chưa có tài khoản? <a href="javascript:void(0)" onclick="switchAuthTab('register')" class="fw-semibold text-warning-emphasis text-decoration-none">Đăng ký ngay</a>
                         </div>
@@ -222,8 +197,7 @@ require_once 'menu.php';
 
                 <!-- TAB 2: FORM TẠO TÀI KHOẢN -->
                 <div id="authFormRegister" style="<?= $active_tab === 'register' ? '' : 'display: none;' ?>">
-                    
-                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-1" style="font-size: 2rem; letter-spacing: 1px;">
+                    <div class="text-warning-emphasis fw-bold text-uppercase small mb-1" style="font-size: 1.35rem; letter-spacing: 0.5px;">
                         TẠO TÀI KHOẢN EduNova
                     </div>
                     <p class="text-muted small mb-4" style="font-size: 0.88rem;">
@@ -284,7 +258,6 @@ require_once 'menu.php';
             </div>
         </div>
     </div>
-
 </div>
 
 <!-- SCRIPT CHUYỂN TAB & ẨN HIỆN MẬT KHẨU -->
@@ -321,6 +294,13 @@ function togglePasswordVisibility(inputId, btn) {
         icon.classList.add('bi-eye');
     }
 }
+
+<?php if (!empty($success)): ?>
+// Đếm ngược chuyển trang khi tạo tài khoản thành công
+setTimeout(function() {
+    window.location.href = 'index.php';
+}, 1800);
+<?php endif; ?>
 </script>
 
 <?php

@@ -1,15 +1,11 @@
 <?php
-// 1. Nhúng Header và Menu
 require_once 'header.php';
 require_once 'menu.php';
-
-// 2. Truy vấn danh sách khóa học từ bảng courses (có lọc theo từ khóa tìm kiếm nếu có)
 $where_sql = "";
 if ($search !== '') {
     $safe_search = mysqli_real_escape_string($conn, $search);
     $where_sql = "WHERE title LIKE '%$safe_search%' OR description LIKE '%$safe_search%'";
 }
-
 $sql_courses = "SELECT * FROM courses $where_sql ORDER BY id DESC";
 $result_courses = mysqli_query($conn, $sql_courses);
 $courses_list = [];
@@ -18,21 +14,14 @@ if ($result_courses) {
         $courses_list[] = $row;
     }
 }
-
 $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Trí tuệ nhân tạo', 'Ngoại ngữ', 'Thiết kế đồ họa'];
 ?>
-
-<!-- Mở container chính (sẽ được đóng ở trong footer.php) -->
 <div class="container pb-5">
-
     <?php
-    // 3. Nhúng Banner và Danh mục (Chỉ hiển thị khi người dùng không gõ tìm kiếm)
     if ($search === '') {
         require_once 'banner.php';
     }
     ?>
-
-    <!-- 4. KHUNG FLASH SALE THEO KHUNG GIỜ -->
     <?php if ($search === ''): ?>
     <div id="flash-sale" class="flash-sale-box mt-5">
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
@@ -48,7 +37,6 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                 <span class="timer-badge" id="countdown-timer">02:19:16</span>
             </div>
         </div>
-
         <div class="row g-3">
             <?php 
             $flash_courses = array_slice($courses_list, 0, 4);
@@ -84,8 +72,6 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
         </div>
     </div>
     <?php endif; ?>
-
-    <!-- 5. DANH SÁCH KHÓA HỌC TRONG CSDL (BÁN CHẠY / MỚI CẬP NHẬT) -->
     <div id="khoa-hoc" class="mt-5 pt-2">
         <div class="d-flex justify-content-between align-items-end mb-4">
             <div>
@@ -143,8 +129,6 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
             <?php endif; ?>
         </div>
     </div>
-
-    <!-- 6. ĐẶC QUYỀN HỘI VIÊN (BẢNG GIÁ) -->
     <div id="goi-hoi-vien" class="mt-5 pt-4">
         <div class="text-center mb-4">
             <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill fw-bold mb-2">ĐẶC QUYỀN HỘI VIÊN</span>
@@ -209,15 +193,11 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
             </div>
         </div>
     </div>
-
-    <!-- 7. PHẢN HỒI THẬT TỪ KHÁCH HÀNG (MOCKUP TIN NHẮN & BILL CHUYỂN KHOẢN) -->
     <?php
     if ($search === '') {
         require_once 'feedback_section.php';
     }
     ?>
-
 <?php
-// 8. Nhúng Footer (Đóng container, hiển thị Cam kết dịch vụ & Chân trang)
 require_once 'footer.php';
 ?>
