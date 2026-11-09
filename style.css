@@ -1123,3 +1123,465 @@ footer {
         width: 100%;
     }
 }
+
+
+/* --------------------------------------------------------------------------
+   5. NÚT YÊU THÍCH, GIỎ HÀNG & USER DROPDOWN (HEADER ACTION ICONS)
+   -------------------------------------------------------------------------- */
+.header-actions-wrap {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+.header-icon-btn {
+    width: 42px !important;
+    height: 42px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    color: #475569 !important;
+    background: transparent !important;
+    position: relative !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.header-icon-btn:hover {
+    color: #0f172a !important;
+    background: #f1f5f9 !important;
+}
+
+.header-icon-btn i {
+    font-size: 1.45rem !important;
+    line-height: 1 !important;
+}
+
+.cart-badge-count {
+    position: absolute !important;
+    top: 1px !important;
+    right: 1px !important;
+    background-color: #d97706 !important; /* Màu vàng nâu chuẩn ảnh */
+    color: #ffffff !important;
+    font-size: 0.65rem !important;
+    font-weight: 700 !important;
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.user-avatar-btn {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 50% !important;
+    background: #fef3c7 !important; /* Nền vàng kem nhạt chuẩn ảnh */
+    color: #b45309 !important; /* Icon màu nâu vàng */
+    border: 1px solid #fde68a !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.user-avatar-btn:hover,
+.user-avatar-btn[aria-expanded="true"] {
+    background: #fde68a !important;
+    color: #92400e !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2) !important;
+}
+
+.user-avatar-btn i {
+    font-size: 1.4rem !important;
+    line-height: 1 !important;
+}
+
+/* Menu Dropdown người dùng thiết kế sang xịn như ảnh mẫu */
+.user-action-dropdown {
+    min-width: 230px !important;
+    border-radius: 16px !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.14) !important;
+    padding: 8px 6px !important;
+    margin-top: 10px !important;
+}
+
+.user-action-dropdown .dropdown-header-custom {
+    padding: 10px 14px 8px 14px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    margin-bottom: 4px !important;
+}
+
+.user-action-dropdown .dropdown-item {
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    color: #334155 !important;
+    padding: 8px 14px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    transition: all 0.18s ease !important;
+}
+
+.user-action-dropdown .dropdown-item i {
+    font-size: 1.05rem !important;
+    color: #475569 !important;
+    width: 20px !important;
+    text-align: center !important;
+    transition: color 0.18s ease !important;
+}
+
+.user-action-dropdown .dropdown-item:hover {
+    background-color: #f8fafc !important;
+    color: #2563eb !important;
+}
+
+.user-action-dropdown .dropdown-item:hover i {
+    color: #2563eb !important;
+}
+
+.user-action-dropdown .dropdown-item.item-logout {
+    color: #ef4444 !important;
+}
+
+.user-action-dropdown .dropdown-item.item-logout i {
+    color: #ef4444 !important;
+}
+
+.user-action-dropdown .dropdown-item.item-logout:hover {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+}
+    color: #dc2626;
+}
+
+.user-greeting-text {
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.2;
+    transition: opacity 0.2s;
+}
+
+.user-greeting-text:hover {
+    opacity: 0.85;
+}
+
+
+/* --------------------------------------------------------------------------
+   6. GIAO DIỆN TRANG PROFILE HỌC VIÊN (USER DASHBOARD GIỐNG ẢNH MẪU)
+   -------------------------------------------------------------------------- */
+.user-profile-page {
+    background-color: #faf9f6; /* Nền kem sáng ấm y như mẫu */
+    min-height: 80vh;
+}
+
+.profile-stat-box {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.profile-stat-box:hover,
+.profile-stat-box.active {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    border-color: #fde68a;
+}
+
+.profile-stat-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.profile-stat-icon-wrap.icon-gold {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.profile-stat-box .stat-label {
+    font-size: 0.76rem;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.profile-stat-box .stat-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+/* Tabs ngang viền vàng đậm chuẩn mẫu */
+.profile-nav-tabs-container {
+    border-bottom: 1.5px solid #e2e8f0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+
+.profile-nav-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-bottom: -1.5px;
+}
+
+.profile-nav-tabs .nav-link {
+    color: #64748b;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 10px 14px;
+    border: none;
+    border-bottom: 2.5px solid transparent;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.profile-nav-tabs .nav-link:hover {
+    color: #0f172a;
+}
+
+.profile-nav-tabs .nav-link.active {
+    color: #92400e;
+    font-weight: 700;
+    border-bottom-color: #d97706; /* Gạch chân màu vàng nâu chuẩn ảnh */
+    background: transparent;
+}
+
+/* Thẻ bảng đơn hàng */
+.order-table-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.order-custom-table {
+    margin-bottom: 0;
+}
+
+.order-custom-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.order-custom-table tbody td {
+    padding: 18px 20px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.status-pill.status-pill-info {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #dbeafe;
+}
+
+.status-pill .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #2563eb;
+}
+
+/* ==========================================================================
+   7. GIAO DIỆN TAB CÀI ĐẶT HỒ SƠ HỌC VIÊN (GIỐNG ẢNH MẪU 100%)
+   ========================================================================== */
+.settings-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 26px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+
+.settings-badge-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #fef3c7;
+    color: #d97706;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.settings-card-title {
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 3px;
+    letter-spacing: -0.2px;
+}
+
+.settings-card-subtitle {
+    font-size: 0.84rem;
+    color: #64748b;
+    margin-bottom: 0;
+}
+
+.settings-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.settings-input {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    color: #1e293b;
+    transition: all 0.2s ease;
+}
+
+.settings-input:focus {
+    border-color: #caa34c;
+    box-shadow: 0 0 0 3px rgba(202, 163, 76, 0.15);
+}
+
+.settings-readonly-input {
+    background-color: #f1f3f5 !important;
+    color: #495057;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    cursor: default;
+}
+
+.settings-verified-badge {
+    color: #10b981;
+    font-size: 0.82rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.settings-input-group {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.settings-input-group .form-control {
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 10px 14px;
+    border-color: #e2e8f0;
+}
+
+.settings-input-group .form-control:focus {
+    border-color: #caa34c;
+    box-shadow: none;
+}
+
+.settings-input-group .input-group-text {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    padding: 0 14px;
+    color: #94a3b8;
+}
+
+.settings-input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(202, 163, 76, 0.15);
+    border-radius: 8px;
+}
+
+.settings-input-group:focus-within .form-control,
+.settings-input-group:focus-within .input-group-text {
+    border-color: #caa34c;
+}
+
+.btn-save-gold {
+    background-color: #caa34c;
+    color: #1c1917;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(202, 163, 76, 0.2);
+}
+
+.btn-save-gold:hover {
+    background-color: #b89139;
+    color: #000000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(202, 163, 76, 0.3);
+}
+
+.settings-helper-text {
+    font-size: 0.82rem;
+    color: #64748b;
+}
+
+.settings-forgot-link {
+    color: #1e293b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s ease;
+}
+
+.settings-forgot-link:hover {
+    color: #caa34c;
+}

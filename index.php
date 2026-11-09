@@ -1,16 +1,16 @@
 <?php
-require_once 'header.php';
-require_once 'menu.php';
+require_once 'includes/header.php';
+require_once 'includes/menu.php';
 $where_sql = "";
 if ($search !== '') {
-    $safe_search = mysqli_real_escape_string($conn, $search);
+    $safe_search = $conn->real_escape_string($search);
     $where_sql = "WHERE title LIKE '%$safe_search%' OR description LIKE '%$safe_search%'";
 }
 $sql_courses = "SELECT * FROM courses $where_sql ORDER BY id DESC";
-$result_courses = mysqli_query($conn, $sql_courses);
+$result_courses = $conn->query($sql_courses);
 $courses_list = [];
-if ($result_courses) {
-    while ($row = mysqli_fetch_assoc($result_courses)) {
+if ($result_courses && $result_courses->num_rows > 0) {
+    while ($row = $result_courses->fetch_assoc()) {
         $courses_list[] = $row;
     }
 }
@@ -19,7 +19,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
 <div class="container pb-5">
     <?php
     if ($search === '') {
-        require_once 'banner.php';
+        require_once 'includes/banner.php';
     }
     ?>
     <?php if ($search === ''): ?>
@@ -53,13 +53,13 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                     </div>
                     <div class="card-body d-flex flex-column p-3">
                         <span class="text-primary fw-semibold small mb-1"><?= $tag ?></span>
-                        <a href="ql_khoahoc.php" class="course-title mb-2"><?= htmlspecialchars($course['title']) ?></a>
+                        <a href="#goi-hoi-vien" class="course-title mb-2"><?= htmlspecialchars($course['title']) ?></a>
                         <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="price-new">89.000 ₫</div>
                                 <div class="price-old">1.500.000 ₫</div>
                             </div>
-                            <a href="ql_khoahoc.php" class="btn btn-danger btn-sm fw-semibold px-3 rounded-pill">
+                            <a href="#goi-hoi-vien" class="btn btn-danger btn-sm fw-semibold px-3 rounded-pill">
                                 Mua giá Flash
                             </a>
                         </div>
@@ -84,7 +84,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
             <?php if ($search !== ''): ?>
                 <a href="index.php" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
             <?php else: ?>
-                <a href="ql_khoahoc.php" class="btn btn-outline-primary btn-sm fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
+                <a href="#khoa-hoc" class="btn btn-outline-primary btn-sm fw-semibold">Xem tất cả <i class="bi bi-arrow-down"></i></a>
             <?php endif; ?>
         </div>
 
@@ -102,7 +102,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                         </div>
                         <div class="card-body d-flex flex-column p-3">
                             <span class="text-muted small fw-semibold mb-1"><i class="bi bi-bookmark-star text-primary me-1"></i><?= $tag ?></span>
-                            <a href="ql_khoahoc.php" class="course-title mb-1"><?= htmlspecialchars($row['title']) ?></a>
+                            <a href="#goi-hoi-vien" class="course-title mb-1"><?= htmlspecialchars($row['title']) ?></a>
                             <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                 <?= htmlspecialchars($row['description']) ?>
                             </p>
@@ -112,8 +112,8 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                                     <span class="price-old">2.500.000 ₫</span>
                                 </div>
                                 <div class="d-grid gap-2 d-flex">
-                                    <a href="ql_khoahoc.php" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">Xem chi tiết</a>
-                                    <a href="ql_khoahoc.php" class="btn btn-primary btn-sm fw-semibold"><i class="bi bi-cart-plus"></i> Học ngay</a>
+                                    <a href="#goi-hoi-vien" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">Xem chi tiết</a>
+                                    <a href="#goi-hoi-vien" class="btn btn-primary btn-sm fw-semibold"><i class="bi bi-cart-plus"></i> Học ngay</a>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +123,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
             <?php else: ?>
                 <div class="col-12">
                     <div class="alert alert-warning text-center py-4">
-                        Không tìm thấy khóa học nào phù hợp. Hãy vào mục <a href="ql_khoahoc.php" class="fw-bold">Quản lý Khóa học</a> để thêm khóa học mới!
+                        Không tìm thấy khóa học nào phù hợp. Hãy vào mục <a href="admin/ql_khoahoc.php" class="fw-bold">Quản lý Khóa học</a> để thêm khóa học mới!
                     </div>
                 </div>
             <?php endif; ?>
@@ -195,9 +195,9 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
     </div>
     <?php
     if ($search === '') {
-        require_once 'feedback_section.php';
+        require_once 'includes/feedback_section.php';
     }
     ?>
 <?php
-require_once 'footer.php';
+require_once 'includes/footer.php';
 ?>

@@ -5,50 +5,65 @@ $error = "";
 $success = "";
 $active_tab = "login";
 
+// Hỗ trợ đăng nhập nhanh 1-click để test
+if (isset($_GET['quick']) && $_GET['quick'] === 'admin') {
+    $_SESSION['user_id'] = 1;
+    $_SESSION['fullname'] = 'Thầy Giáo Hiếu';
+    $_SESSION['username'] = 'giangvien';
+    $_SESSION['role'] = 1;
+    $_SESSION['flash_msg'] = "Đăng nhập thành công với quyền Quản trị viên!";
+    $_SESSION['flash_type'] = "success";
+    header("Location: admin/index.php");
+    exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST['action'] ?? 'login';
     if ($action === 'register') {
         $active_tab = "register";
-        $reg_username = trim(mysqli_real_escape_string($conn, $_POST['reg_username'] ?? ''));
+        $reg_username = trim($conn->real_escape_string($_POST['reg_username'] ?? ''));
         $reg_password = $_POST['reg_password'] ?? '';
-        $reg_fullname = trim(mysqli_real_escape_string($conn, $_POST['reg_fullname'] ?? ''));
+        $reg_fullname = trim($conn->real_escape_string($_POST['reg_fullname'] ?? ''));
 
         if (empty($reg_username) || empty($reg_password) || empty($reg_fullname)) {
             $error = "Vui lòng nhập đầy đủ họ tên, tên đăng nhập và mật khẩu!";
         } else {
             // Kiểm tra tên đăng nhập đã tồn tại chưa
-            $check = mysqli_query($conn, "SELECT id FROM users WHERE username = '$reg_username'");
-            if (mysqli_num_rows($check) > 0) {
+            $check = $conn->query("SELECT id FROM users WHERE username = '$reg_username'");
+            if ($check && $check->num_rows > 0) {
                 $error = "Tên đăng nhập '<b>" . htmlspecialchars($reg_username) . "</b>' đã tồn tại. Vui lòng chọn tên khác!";
             } else {
-                $insert = mysqli_query($conn, "INSERT INTO users (username, password, fullname, role) VALUES ('$reg_username', '$reg_password', '$reg_fullname', 0)");
-                if ($insert) {
-                    $new_id = mysqli_insert_id($conn);
+                $safe_pass = $conn->real_escape_string($reg_password);
+                $sql_ins = "INSERT INTO users (username, password, fullname, role) VALUES ('$reg_username', '$safe_pass', '$reg_fullname', 0)";
+                if ($conn->query($sql_ins) === TRUE) {
+                    $new_id = $conn->insert_id;
                     $_SESSION['user_id'] = $new_id;
                     $_SESSION['fullname'] = $reg_fullname;
+                    $_SESSION['username'] = $reg_username;
                     $_SESSION['role'] = 0; // Mặc định tài khoản học viên
-                    $success = "Tạo tài khoản thành công! Đang chuyển hướng về trang chủ...";
+                    $success = "Tạo tài khoản thành công! Đang chuyển hướng về trang hồ sơ...";
                 } else {
-                    $error = "Có lỗi xảy ra khi tạo tài khoản: " . mysqli_error($conn);
+                    $error = "Có lỗi xảy ra khi tạo tài khoản: " . $conn->error;
                 }
             }
         }
     } else {
         // Đăng nhập
         $active_tab = "login";
-        $username = trim($_POST['username'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $username = trim($conn->real_escape_string($_POST['username'] ?? ''));
+        $password = trim($_POST['password'] ?? '');
         $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
-        $result = mysqli_query($conn, $sql);
-        if ($result && mysqli_num_rows($result) === 1) {
-            $row = mysqli_fetch_assoc($result);
+        $result = $conn->query($sql);
+        if ($result && $result->num_rows === 1) {
+            $row = $result->fetch_assoc();
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['fullname'] = $row['fullname'];
+            $_SESSION['username'] = $row['username'];
             $_SESSION['role'] = (int)$row['role'];
             if ($row['role'] == 1) {
-                header("Location: ql_khoahoc.php");
+                header("Location: admin/index.php");
             } else {
-                header("Location: index.php");
+                header("Location: profile.php");
             }
             exit();
         } 
@@ -57,8 +72,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
     }
 }
-require_once 'header.php';
-require_once 'menu.php';
+require_once 'includes/header.php';
+require_once 'includes/menu.php';
 ?>
 <div class="container pb-4 auth-page-bg">
     <div class="auth-breadcrumb-wrap">
@@ -191,7 +206,10 @@ require_once 'menu.php';
 
                     <!-- Gợi ý tài khoản demo -->
                     <div class="mt-4 p-2.5 rounded-3 bg-light border text-center small text-secondary" style="font-size: 0.78rem;">
-                        <i class="bi bi-info-circle-fill text-primary me-1"></i> Tài khoản mẫu: <b>giangvien / 123456</b> (Quản trị) hoặc <b>hocvien / 123456</b> (Học viên)
+                        <div class="mb-1"><i class="bi bi-info-circle-fill text-primary me-1"></i> Tài khoản mẫu: <b>giangvien / 123456</b> (Quản trị) hoặc <b>hocvien / 123456</b> (Học viên)</div>
+                        <a href="login.php?quick=admin" class="btn btn-warning btn-sm fw-bold py-1 px-3 rounded-pill mt-1" style="font-size: 0.75rem;">
+                            <i class="bi bi-lightning-fill me-1"></i> Đăng nhập Giảng viên Nhanh (1-Click)
+                        </a>
                     </div>
                 </div>
 
@@ -298,12 +316,12 @@ function togglePasswordVisibility(inputId, btn) {
 <?php if (!empty($success)): ?>
 // Đếm ngược chuyển trang khi tạo tài khoản thành công
 setTimeout(function() {
-    window.location.href = 'index.php';
+    window.location.href = 'profile.php';
 }, 1800);
 <?php endif; ?>
 </script>
 
 <?php
 // Nhúng Footer chung (Đóng container, hiển thị Cam kết & Chân trang)
-require_once 'footer.php';
+require_once 'includes/footer.php';
 ?>

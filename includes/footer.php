@@ -56,7 +56,6 @@
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Công nghệ & Lập trình</a></li>
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Kinh doanh & Marketing</a></li>
                     <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Thiết kế đồ họa & Video</a></li>
-                    <!-- <li class="mb-2"><a href="index.php#khoa-hoc" class="text-secondary text-decoration-none">Ngoại ngữ & Tin học</a></li> -->
                     <li class="mb-2"><a href="index.php#phan-hoi" class="text-warning text-decoration-none"><i class="bi bi-patch-check-fill me-1"></i>Phản hồi từ học viên</a></li>
                 </ul>
             </div>
