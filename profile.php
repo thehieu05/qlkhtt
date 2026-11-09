@@ -379,10 +379,10 @@ require_once 'includes/menu.php';
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex flex-column gap-1.5">
-                                        <a href="index.php#khoa-hoc" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-semibold" style="font-size: 0.8rem;">
+                                        <a href="chitiet_khoahoc.php?id=3" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-semibold" style="font-size: 0.8rem;">
                                             Chi tiết →
                                         </a>
-                                        <a href="index.php#goi-hoi-vien" class="btn btn-dark btn-sm px-3 rounded-2 fw-semibold d-inline-flex align-items-center justify-content-center gap-1" style="font-size: 0.8rem;">
+                                        <a href="chitiet_khoahoc.php?id=3" class="btn btn-dark btn-sm px-3 rounded-2 fw-semibold d-inline-flex align-items-center justify-content-center gap-1" style="font-size: 0.8rem;">
                                             Điền thông tin <i class="bi bi-box-arrow-up-right" style="font-size: 0.7rem;"></i>
                                         </a>
                                     </div>
@@ -412,7 +412,7 @@ require_once 'includes/menu.php';
                                     <p class="text-muted small text-truncate-2 mb-3"><?= htmlspecialchars($c['description']) ?></p>
                                     <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                                         <span class="badge bg-success-subtle text-success">Đã kích hoạt</span>
-                                        <a href="index.php#khoa-hoc" class="btn btn-primary btn-sm rounded-pill px-3">Vào học ngay</a>
+                                        <a href="chitiet_khoahoc.php?id=<?= $c['id'] ?>" class="btn btn-primary btn-sm rounded-pill px-3">Vào học ngay</a>
                                     </div>
                                 </div>
                             </div>

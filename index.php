@@ -44,22 +44,28 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                 foreach ($flash_courses as $idx => $course): 
                     $tag = $sample_tags[$idx % count($sample_tags)];
                     $img = !empty($course['image_url']) ? $course['image_url'] : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600';
+                    $course_url = "chitiet_khoahoc.php?id=" . $course['id'];
+                    $c_price = (float)($course['price'] > 0 ? $course['price'] : 149999);
+                    $c_flash = round($c_price * 0.95);
+                    $c_old = (float)($course['old_price'] > 0 ? $course['old_price'] : 1500000);
             ?>
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="course-card border-0 shadow-sm">
                     <div class="course-img-wrap">
-                        <span class="discount-badge">-10% FLASH</span>
-                        <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($course['title']) ?>">
+                        <span class="discount-badge">-5% FLASH</span>
+                        <a href="<?= $course_url ?>">
+                            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($course['title']) ?>">
+                        </a>
                     </div>
                     <div class="card-body d-flex flex-column p-3">
                         <span class="text-primary fw-semibold small mb-1"><?= $tag ?></span>
-                        <a href="#goi-hoi-vien" class="course-title mb-2"><?= htmlspecialchars($course['title']) ?></a>
+                        <a href="<?= $course_url ?>" class="course-title mb-2"><?= htmlspecialchars($course['title']) ?></a>
                         <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
                             <div>
-                                <div class="price-new">89.000 ₫</div>
-                                <div class="price-old">1.500.000 ₫</div>
+                                <div class="price-new"><?= number_format($c_flash, 0, ',', '.') ?> ₫</div>
+                                <div class="price-old"><?= number_format($c_old, 0, ',', '.') ?> ₫</div>
                             </div>
-                            <a href="#goi-hoi-vien" class="btn btn-danger btn-sm fw-semibold px-3 rounded-pill">
+                            <a href="<?= $course_url ?>" class="btn btn-danger btn-sm fw-semibold px-3 rounded-pill">
                                 Mua giá Flash
                             </a>
                         </div>
@@ -93,27 +99,32 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                 <?php foreach ($courses_list as $index => $row): 
                     $tag = $sample_tags[$index % count($sample_tags)];
                     $img = !empty($row['image_url']) ? $row['image_url'] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600';
+                    $row_url = "chitiet_khoahoc.php?id=" . $row['id'];
+                    $r_price = (float)($row['price'] > 0 ? $row['price'] : 149999);
+                    $r_old = (float)($row['old_price'] > 0 ? $row['old_price'] : 2500000);
                 ?>
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
                     <div class="course-card">
                         <div class="course-img-wrap">
                             <span class="discount-badge bg-primary">HOT</span>
-                            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($row['title']) ?>">
+                            <a href="<?= $row_url ?>">
+                                <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($row['title']) ?>">
+                            </a>
                         </div>
                         <div class="card-body d-flex flex-column p-3">
                             <span class="text-muted small fw-semibold mb-1"><i class="bi bi-bookmark-star text-primary me-1"></i><?= $tag ?></span>
-                            <a href="#goi-hoi-vien" class="course-title mb-1"><?= htmlspecialchars($row['title']) ?></a>
+                            <a href="<?= $row_url ?>" class="course-title mb-1"><?= htmlspecialchars($row['title']) ?></a>
                             <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
                                 <?= htmlspecialchars($row['description']) ?>
                             </p>
                             <div class="mt-auto pt-2 border-top">
                                 <div class="d-flex justify-content-between align-items-baseline mb-2">
-                                    <span class="price-new">99.000 ₫</span>
-                                    <span class="price-old">2.500.000 ₫</span>
+                                    <span class="price-new"><?= number_format($r_price, 0, ',', '.') ?> ₫</span>
+                                    <span class="price-old"><?= number_format($r_old, 0, ',', '.') ?> ₫</span>
                                 </div>
                                 <div class="d-grid gap-2 d-flex">
-                                    <a href="#goi-hoi-vien" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">Xem chi tiết</a>
-                                    <a href="#goi-hoi-vien" class="btn btn-primary btn-sm fw-semibold"><i class="bi bi-cart-plus"></i> Học ngay</a>
+                                    <a href="<?= $row_url ?>" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">Xem chi tiết</a>
+                                    <a href="<?= $row_url ?>" class="btn btn-primary btn-sm fw-semibold"><i class="bi bi-cart-plus"></i> Học ngay</a>
                                 </div>
                             </div>
                         </div>
