@@ -1,7 +1,5 @@
 <?php
 require_once '../config.php';
-require_once 'db_helper.php';
-init_admin_database($conn);
 
 if (!isset($_SESSION['user_id']) || (int)($_SESSION['role'] ?? 0) !== 1) {
     header("Location: ../login.php");

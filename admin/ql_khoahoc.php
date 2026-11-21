@@ -1,7 +1,5 @@
 <?php
 require_once '../config.php';
-require_once 'db_helper.php';
-init_admin_database($conn);
 
 if (!isset($_SESSION['user_id']) || (int)($_SESSION['role'] ?? 0) !== 1) {
     header("Location: ../login.php");
@@ -25,6 +23,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $level       = trim($_POST['level'] ?? 'Cơ bản đến Nâng cao');
         $category    = trim($_POST['category'] ?? 'Lập trình');
         $is_active   = isset($_POST['is_active']) ? 1 : 0;
+
+        // Xử lý upload ảnh bìa từ máy tính
+        if (isset($_FILES['image_file']) && $_FILES['image_file']['error'] === UPLOAD_ERR_OK) {
+            $file_tmp  = $_FILES['image_file']['tmp_name'];
+            $file_name = $_FILES['image_file']['name'];
+            $file_size = $_FILES['image_file']['size'];
+            $ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+
+            if (!in_array($ext, $allowed_exts)) {
+                $_SESSION['flash_msg'] = "Định dạng file ảnh không hợp lệ! Vui lòng chọn ảnh định dạng: " . implode(', ', $allowed_exts);
+                $_SESSION['flash_type'] = "danger";
+                header("Location: ql_khoahoc.php");
+                exit();
+            }
+
+            if ($file_size > 5 * 1024 * 1024) {
+                $_SESSION['flash_msg'] = "Dung lượng ảnh vượt quá giới hạn (tối đa 5MB)!";
+                $_SESSION['flash_type'] = "danger";
+                header("Location: ql_khoahoc.php");
+                exit();
+            }
+
+            $upload_dir = __DIR__ . '/../uploads/courses/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+
+            $new_file_name = 'course_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $destination = $upload_dir . $new_file_name;
+
+            if (move_uploaded_file($file_tmp, $destination)) {
+                $image_url = 'uploads/courses/' . $new_file_name;
+            } else {
+                $_SESSION['flash_msg'] = "Không thể lưu file ảnh tải lên!";
+                $_SESSION['flash_type'] = "danger";
+                header("Location: ql_khoahoc.php");
+                exit();
+            }
+        }
+
+        // Nếu sửa mà không chọn ảnh mới và để trống link, lấy lại ảnh cũ
+        if ($action === 'edit' && $course_id > 0 && empty($image_url)) {
+            $old_q = $conn->query("SELECT image_url FROM courses WHERE id = $course_id");
+            if ($old_q && $row = $old_q->fetch_assoc()) {
+                $image_url = $row['image_url'];
+            }
+        }
 
         if (empty($image_url)) {
             $image_url = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80';
@@ -132,7 +178,7 @@ include 'admin_layout.php';
 
 <div class="page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
-        <h4>Quản lý Khóa học (US-02 & US-04)</h4>
+        <h4>Quản lý thông tin khóa học</h4>
         <p>Thêm mới, chỉnh sửa thông tin, giá bán, chi tiết cấu hình và chương trình giảng dạy</p>
     </div>
     <div class="d-flex gap-2">
@@ -195,8 +241,17 @@ include 'admin_layout.php';
                     <tr>
                         <td class="fw-bold text-muted">#<?= $c['id'] ?></td>
                         <td>
+                            <?php 
+                                $c_img = $c['image_url'] ?? '';
+                                if (!empty($c_img) && !preg_match('#^https?://#i', $c_img) && strpos($c_img, '/') !== 0) {
+                                    $c_img = '../' . $c_img;
+                                }
+                                if (empty($c_img)) {
+                                    $c_img = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80';
+                                }
+                            ?>
                             <div class="d-flex align-items-center gap-2">
-                                <img src="<?= htmlspecialchars($c['image_url']) ?>" style="width: 60px; height: 42px; object-fit: cover; border-radius: 6px;">
+                                <img src="<?= htmlspecialchars($c_img) ?>" style="width: 60px; height: 42px; object-fit: cover; border-radius: 6px;" onerror="this.src='https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80'">
                                 <div>
                                     <div class="fw-bold text-dark"><?= htmlspecialchars($c['title']) ?></div>
                                     <div class="text-muted small text-truncate" style="max-width: 250px;">
@@ -259,7 +314,7 @@ include 'admin_layout.php';
 <div class="modal fade" id="modalAddCourse" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="add">
                 <div class="modal-header">
                     <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle text-primary me-2"></i>Thêm Khóa Học Mới</h5>
@@ -297,8 +352,26 @@ include 'admin_layout.php';
                         <input type="number" name="old_price" class="form-control" value="899000" step="10000">
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Link ảnh bìa (URL)</label>
-                        <input type="text" name="image_url" class="form-control" placeholder="https://images.unsplash.com/..." value="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80">
+                        <label class="form-label fw-semibold">Ảnh bìa khóa học</label>
+                        <div class="card p-3 bg-light border">
+                            <div class="row align-items-center g-3">
+                                <div class="col-auto">
+                                    <img id="add_preview_img" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80" 
+                                         style="width: 130px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6;" alt="Xem trước ảnh">
+                                </div>
+                                <div class="col">
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-bold mb-1"><i class="bi bi-upload text-primary me-1"></i>Tải ảnh lên từ máy tính:</label>
+                                        <input type="file" name="image_file" class="form-control form-control-sm" accept="image/*" onchange="previewImageFile(this, 'add_preview_img')">
+                                        <div class="form-text small">Hỗ trợ JPG, PNG, GIF, WEBP (Tối đa 5MB)</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label small fw-bold mb-1"><i class="bi bi-link-45deg text-secondary me-1"></i>Hoặc nhập liên kết ảnh (URL):</label>
+                                        <input type="text" name="image_url" id="add_image_url" class="form-control form-control-sm" placeholder="https://..." value="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80" oninput="previewImageUrl(this, 'add_preview_img')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Mô tả tóm tắt khóa học</label>
@@ -324,7 +397,7 @@ include 'admin_layout.php';
 <div class="modal fade" id="modalEditCourse" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="course_id" id="edit_course_id">
                 <div class="modal-header">
@@ -363,8 +436,26 @@ include 'admin_layout.php';
                         <input type="number" name="old_price" id="edit_old_price" class="form-control" step="10000">
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Link ảnh bìa (URL)</label>
-                        <input type="text" name="image_url" id="edit_image_url" class="form-control">
+                        <label class="form-label fw-semibold">Ảnh bìa khóa học</label>
+                        <div class="card p-3 bg-light border">
+                            <div class="row align-items-center g-3">
+                                <div class="col-auto">
+                                    <img id="edit_preview_img" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80" 
+                                         style="width: 130px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #dee2e6;" alt="Xem trước ảnh">
+                                </div>
+                                <div class="col">
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-bold mb-1"><i class="bi bi-upload text-primary me-1"></i>Tải ảnh mới từ máy tính (nếu muốn đổi):</label>
+                                        <input type="file" name="image_file" id="edit_image_file" class="form-control form-control-sm" accept="image/*" onchange="previewImageFile(this, 'edit_preview_img')">
+                                        <div class="form-text small">Hỗ trợ JPG, PNG, GIF, WEBP (Tối đa 5MB)</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label small fw-bold mb-1"><i class="bi bi-link-45deg text-secondary me-1"></i>Hoặc nhập liên kết ảnh (URL):</label>
+                                        <input type="text" name="image_url" id="edit_image_url" class="form-control form-control-sm" placeholder="https://..." oninput="previewImageUrl(this, 'edit_preview_img')">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Mô tả tóm tắt khóa học</label>
@@ -393,6 +484,25 @@ include 'admin_layout.php';
 </form>
 
 <script>
+function previewImageFile(input, previewId) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById(previewId);
+            if (img) img.src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function previewImageUrl(input, previewId) {
+    var val = input.value.trim();
+    if (val !== '') {
+        var img = document.getElementById(previewId);
+        if (img) img.src = val;
+    }
+}
+
 function openEditModal(c) {
     document.getElementById('edit_course_id').value = c.id;
     document.getElementById('edit_title').value = c.title || '';
@@ -403,6 +513,22 @@ function openEditModal(c) {
     document.getElementById('edit_category').value = c.category || 'Lập trình';
     document.getElementById('edit_level').value = c.level || 'Cơ bản cho người mới';
     document.getElementById('edit_is_active').checked = (parseInt(c.is_active) === 1);
+
+    var fileInput = document.getElementById('edit_image_file');
+    if (fileInput) fileInput.value = '';
+
+    var previewImg = document.getElementById('edit_preview_img');
+    if (previewImg) {
+        var rawUrl = c.image_url || '';
+        if (rawUrl) {
+            var fullUrl = (rawUrl.startsWith('http://') || rawUrl.startsWith('https://') || rawUrl.startsWith('/')) 
+                ? rawUrl 
+                : '../' + rawUrl;
+            previewImg.src = fullUrl;
+        } else {
+            previewImg.src = 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80';
+        }
+    }
 
     var modal = new bootstrap.Modal(document.getElementById('modalEditCourse'));
     modal.show();

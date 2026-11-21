@@ -1,9 +1,5 @@
 <?php
 require_once '../config.php';
-require_once 'db_helper.php';
-
-// Tự động khởi tạo database nếu các bảng admin chưa có
-init_admin_database($conn);
 
 // Hỗ trợ truy cập nhanh để kiểm thử
 if (isset($_GET['quick']) && $_GET['quick'] === 'admin') {

@@ -117,6 +117,19 @@ if (empty($chapters_data)) {
     ];
 }
 
+// Tìm bài học học thử miễn phí đầu tiên
+$first_free_lesson = null;
+foreach ($chapters_data as $ch) {
+    if (!empty($ch['lessons'])) {
+        foreach ($ch['lessons'] as $ls) {
+            if (!empty($ls['is_free'])) {
+                $first_free_lesson = $ls;
+                break 2;
+            }
+        }
+    }
+}
+
 // Hình ảnh khóa học
 $course_img = !empty($course['image_url']) ? $course['image_url'] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80';
 $category_name = !empty($course['category']) ? $course['category'] : 'Khóa học Facebook';
@@ -359,7 +372,7 @@ require_once 'includes/menu.php';
                                                     </div>
                                                     <div class="d-flex align-items-center gap-3">
                                                         <?php if (!empty($lesson['is_free'])): ?>
-                                                            <span class="lesson-badge-free" data-bs-toggle="modal" data-bs-target="#trialModal">
+                                                            <span class="lesson-badge-free" style="cursor: pointer;" onclick='openTrialLesson(<?= htmlspecialchars(json_encode($lesson), ENT_QUOTES) ?>)'>
                                                                 <i class="bi bi-play-fill"></i> Học thử miễn phí
                                                             </span>
                                                         <?php else: ?>
@@ -453,7 +466,7 @@ require_once 'includes/menu.php';
                             </div>
 
                             <!-- Nút 3: Học thử miễn phí màu tím nhạt -->
-                            <a href="javascript:void(0)" class="btn-trial-purple" data-bs-toggle="modal" data-bs-target="#trialModal">
+                            <a href="javascript:void(0)" class="btn-trial-purple" onclick="openFirstTrialLesson()">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="bi bi-play-circle fs-4 text-purple"></i>
                                     <div>
@@ -464,16 +477,16 @@ require_once 'includes/menu.php';
                                 <i class="bi bi-box-arrow-up-right small text-purple"></i>
                             </a>
 
-                            <!-- Nút 4: Vào học ngay màu xanh đen sang trọng -->
-                            <a href="javascript:void(0)" class="btn-study-green" onclick="handleDirectAccess()">
+                            <!-- Nút 4: Vào học ngay - dẫn đến trang học trực tuyến -->
+                            <a href="hoc.php?course_id=<?= $course_id ?>" class="btn-study-green">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="bi bi-mortarboard fs-4 text-success-emphasis"></i>
                                     <div>
                                         <div class="fw-bold" style="font-size: 0.92rem;">Vào học ngay</div>
-                                        <div style="font-size: 0.72rem; opacity: 0.85;">Mở khóa học trên Google Drive</div>
+                                        <div style="font-size: 0.72rem; opacity: 0.85;">Học trực tuyến – Video, Ghi chú, Hỏi đáp</div>
                                     </div>
                                 </div>
-                                <i class="bi bi-box-arrow-up-right small"></i>
+                                <i class="bi bi-play-circle-fill small"></i>
                             </a>
 
                             <!-- Nút 5: Kiếm tiền từ khóa học này / Affiliate màu vàng -->
@@ -579,14 +592,14 @@ require_once 'includes/menu.php';
                         <i class="bi bi-play-circle-fill fs-6"></i>
                     </span>
                     <div>
-                        <h6 class="modal-title fw-bold text-dark mb-0">Học thử: Bài 1 - Giới thiệu & Lộ trình học 2025</h6>
+                        <h6 class="modal-title fw-bold text-dark mb-0" id="trialModalTitle">Học thử: <?= htmlspecialchars($first_free_lesson['title'] ?? 'Bài 1 - Giới thiệu & Lộ trình học 2025') ?></h6>
                         <span class="text-muted small"><?= htmlspecialchars($course['title']) ?></span>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="stopTrialVideo()"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="ratio ratio-16x9 bg-black">
+                <div class="ratio ratio-16x9 bg-black" id="trialVideoContainer">
                     <iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0" title="Video học thử" allowfullscreen></iframe>
                 </div>
                 <div class="p-3 bg-light d-flex justify-content-between align-items-center">
@@ -701,17 +714,14 @@ function toggleFavorite(btn) {
     }
 }
 
-// Vào học ngay
+// Vào học ngay - chuyển hướng tới trang hoc.php
 function handleDirectAccess() {
     <?php if (isset($_SESSION['user_id'])): ?>
-        showToast('🎓 Đang chuyển hướng bạn đến thư mục Google Drive của khóa học...', 'bg-primary');
-        setTimeout(() => {
-            window.open('https://drive.google.com/', '_blank');
-        }, 1000);
+        window.location.href = 'hoc.php?course_id=<?= $course_id ?>';
     <?php else: ?>
-        showToast('Vui lòng đăng nhập để mở quyền truy cập khóa học!', 'bg-warning text-dark');
+        showToast('Vui lòng đăng nhập để vào học!', 'bg-warning text-dark');
         setTimeout(() => {
-            window.location.href = 'login.php';
+            window.location.href = 'login.php?redirect=hoc.php?course_id=<?= $course_id ?>';
         }, 1200);
     <?php endif; ?>
 }
@@ -742,6 +752,54 @@ function copyAffiliateLink() {
         });
     }
 }
+
+// Xử lý học thử miễn phí
+var defaultFirstFreeLesson = <?= json_encode($first_free_lesson) ?>;
+
+function openFirstTrialLesson() {
+    if (defaultFirstFreeLesson) {
+        openTrialLesson(defaultFirstFreeLesson);
+    } else {
+        openTrialLesson({
+            title: 'Bài 1: Giới thiệu & Lộ trình học 2025',
+            video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+        });
+    }
+}
+
+function openTrialLesson(ls) {
+    if (!ls) return;
+    var titleEl = document.getElementById('trialModalTitle');
+    if (titleEl) titleEl.innerText = 'Học thử: ' + (ls.title || 'Bài học xem trước');
+
+    var container = document.getElementById('trialVideoContainer');
+    var rawUrl = (ls.video_url || '').trim();
+
+    if (!rawUrl) {
+        rawUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+    }
+
+    if (rawUrl.startsWith('uploads/') || rawUrl.endsWith('.mp4') || rawUrl.endsWith('.webm') || rawUrl.endsWith('.ogg')) {
+        container.innerHTML = '<video controls autoplay style="width:100%; height:100%; object-fit:contain; background:#000;"><source src="' + rawUrl + '" type="video/mp4">Trình duyệt không hỗ trợ xem video.</video>';
+    } else {
+        var embedUrl = rawUrl;
+        if (embedUrl.includes('watch?v=')) {
+            embedUrl = embedUrl.replace('watch?v=', 'embed/');
+        }
+        container.innerHTML = '<iframe src="' + embedUrl + '" title="Video học thử" allowfullscreen style="width:100%; height:100%; border:0;"></iframe>';
+    }
+
+    new bootstrap.Modal(document.getElementById('trialModal')).show();
+}
+
+function stopTrialVideo() {
+    var container = document.getElementById('trialVideoContainer');
+    if (container) container.innerHTML = '';
+}
+
+document.getElementById('trialModal')?.addEventListener('hidden.bs.modal', function () {
+    stopTrialVideo();
+});
 </script>
 
 <?php

@@ -5,17 +5,7 @@ $error = "";
 $success = "";
 $active_tab = "login";
 
-// Hỗ trợ đăng nhập nhanh 1-click để test
-if (isset($_GET['quick']) && $_GET['quick'] === 'admin') {
-    $_SESSION['user_id'] = 1;
-    $_SESSION['fullname'] = 'Thầy Giáo Hiếu';
-    $_SESSION['username'] = 'giangvien';
-    $_SESSION['role'] = 1;
-    $_SESSION['flash_msg'] = "Đăng nhập thành công với quyền Quản trị viên!";
-    $_SESSION['flash_type'] = "success";
-    header("Location: admin/index.php");
-    exit();
-}
+
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST['action'] ?? 'login';
@@ -203,14 +193,6 @@ require_once 'includes/menu.php';
                             Chưa có tài khoản? <a href="javascript:void(0)" onclick="switchAuthTab('register')" class="fw-semibold text-warning-emphasis text-decoration-none">Đăng ký ngay</a>
                         </div>
                     </form>
-
-                    <!-- Gợi ý tài khoản demo -->
-                    <div class="mt-4 p-2.5 rounded-3 bg-light border text-center small text-secondary" style="font-size: 0.78rem;">
-                        <div class="mb-1"><i class="bi bi-info-circle-fill text-primary me-1"></i> Tài khoản mẫu: <b>giangvien / 123456</b> (Quản trị) hoặc <b>hocvien / 123456</b> (Học viên)</div>
-                        <a href="login.php?quick=admin" class="btn btn-warning btn-sm fw-bold py-1 px-3 rounded-pill mt-1" style="font-size: 0.75rem;">
-                            <i class="bi bi-lightning-fill me-1"></i> Đăng nhập Giảng viên Nhanh (1-Click)
-                        </a>
-                    </div>
                 </div>
 
                 <!-- TAB 2: FORM TẠO TÀI KHOẢN -->

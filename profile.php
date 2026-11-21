@@ -79,12 +79,24 @@ if (!empty($current_user['email'])) {
 // Lấy tab hiện tại từ query string (?tab=caidat, ?tab=donhang,...)
 $active_tab = $_GET['tab'] ?? 'donhang';
 
-// Lấy danh sách khóa học thực tế
-$courses_query = $conn->query("SELECT * FROM courses ORDER BY id DESC LIMIT 5");
+// Lấy danh sách khóa học thực tế của học viên từ bảng enrollments
+$courses_query = $conn->query("SELECT c.*, COALESCE(e.progress_percent, 0) as progress_percent, e.enrolled_at, e.status as enroll_status 
+    FROM enrollments e 
+    JOIN courses c ON c.id = e.course_id 
+    WHERE e.user_id = $user_id 
+    ORDER BY e.id DESC");
 $user_courses = [];
 if ($courses_query && $courses_query->num_rows > 0) {
     while ($row = $courses_query->fetch_assoc()) {
         $user_courses[] = $row;
+    }
+} else {
+    // Nếu chưa có khóa học ghi danh, hiển thị các khóa học mẫu có sẵn
+    $courses_fallback = $conn->query("SELECT c.*, 0 as progress_percent, 'active' as enroll_status FROM courses c WHERE c.is_active = 1 ORDER BY c.id DESC LIMIT 6");
+    if ($courses_fallback) {
+        while ($row = $courses_fallback->fetch_assoc()) {
+            $user_courses[] = $row;
+        }
     }
 }
 
@@ -405,14 +417,40 @@ require_once 'includes/menu.php';
                 <?php if (!empty($user_courses)): ?>
                     <?php foreach ($user_courses as $c): ?>
                         <div class="col-md-6 col-lg-4">
-                            <div class="card h-100 border rounded-3 overflow-hidden shadow-sm">
-                                <img src="<?= htmlspecialchars($c['image_url'] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600') ?>" class="card-img-top" style="height: 160px; object-fit: cover;" alt="cover">
+                            <div class="card h-100 border rounded-3 overflow-hidden shadow-sm d-flex flex-column">
+                                <a href="hoc.php?course_id=<?= $c['id'] ?>" class="d-block position-relative overflow-hidden">
+                                    <img src="<?= htmlspecialchars($c['image_url'] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600') ?>" class="card-img-top" style="height: 160px; object-fit: cover;" alt="cover">
+                                    <div class="position-absolute top-0 start-0 m-2">
+                                        <span class="badge bg-success shadow-sm"><i class="bi bi-check-circle-fill me-1"></i>Đã kích hoạt</span>
+                                    </div>
+                                </a>
                                 <div class="card-body d-flex flex-column p-3">
-                                    <h6 class="fw-bold text-dark mb-2"><?= htmlspecialchars($c['title']) ?></h6>
+                                    <h6 class="fw-bold mb-2">
+                                        <a href="hoc.php?course_id=<?= $c['id'] ?>" class="text-dark text-decoration-none">
+                                            <?= htmlspecialchars($c['title']) ?>
+                                        </a>
+                                    </h6>
                                     <p class="text-muted small text-truncate-2 mb-3"><?= htmlspecialchars($c['description']) ?></p>
-                                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
-                                        <span class="badge bg-success-subtle text-success">Đã kích hoạt</span>
-                                        <a href="chitiet_khoahoc.php?id=<?= $c['id'] ?>" class="btn btn-primary btn-sm rounded-pill px-3">Vào học ngay</a>
+                                    
+                                    <!-- Hiển thị tiến độ học tập nếu có -->
+                                    <?php $pct = (int)($c['progress_percent'] ?? 0); ?>
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center small text-muted mb-1" style="font-size: 0.75rem;">
+                                            <span>Tiến độ học tập</span>
+                                            <span class="fw-bold text-primary"><?= $pct ?>%</span>
+                                        </div>
+                                        <div class="progress" style="height: 5px; background-color: #e9ecef;">
+                                            <div class="progress-bar bg-primary" role="progressbar" style="width: <?= $pct ?>%;" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center gap-2">
+                                        <a href="chitiet_khoahoc.php?id=<?= $c['id'] ?>" class="text-secondary small text-decoration-none" title="Xem chi tiết giới thiệu">
+                                            <i class="bi bi-info-circle me-1"></i>Chi tiết
+                                        </a>
+                                        <a href="hoc.php?course_id=<?= $c['id'] ?>" class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm">
+                                            <i class="bi bi-play-circle-fill"></i> Vào học ngay
+                                        </a>
                                     </div>
                                 </div>
                             </div>
