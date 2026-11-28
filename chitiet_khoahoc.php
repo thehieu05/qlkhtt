@@ -4,125 +4,116 @@ require_once 'config.php';
 // Lấy ID khóa học từ query string
 $course_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-// Truy vấn khóa học từ CSDL
+// Truy vấn khóa học từ CSDL (chỉ hiển thị khóa học đang công khai cho khách/học viên)
 $course = null;
+$status_cond = is_admin() ? "" : " AND c.status = 'published'";
 if ($course_id > 0) {
-    $res = $conn->query("SELECT * FROM courses WHERE id = $course_id LIMIT 1");
-    if ($res && $res->num_rows > 0) {
-        $course = $res->fetch_assoc();
+    $stmt = $conn->prepare("SELECT c.*, cat.name AS category_name FROM courses c LEFT JOIN categories cat ON c.category_id = cat.id WHERE c.id = ? $status_cond LIMIT 1");
+    if ($stmt) {
+        $stmt->bind_param('i', $course_id);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        if ($res && $res->num_rows > 0) {
+            $course = $res->fetch_assoc();
+        }
+        $stmt->close();
     }
 }
 
-// Nếu không tìm thấy khóa học theo ID, lấy khóa học đầu tiên làm mặc định
+// Nếu không tìm thấy khóa học công khai theo ID, chuyển hướng về danh mục
 if (!$course) {
-    $res_default = $conn->query("SELECT * FROM courses ORDER BY id ASC LIMIT 1");
-    if ($res_default && $res_default->num_rows > 0) {
-        $course = $res_default->fetch_assoc();
-        $course_id = (int)$course['id'];
-    }
+    set_flash('Khóa học không tồn tại hoặc chưa được công khai.', 'warning');
+    header("Location: danh_muc.php");
+    exit();
 }
 
-// Nếu trong CSDL chưa có khóa học nào, tạo dữ liệu mẫu
-if (!$course) {
-    $course = [
-        'id' => 1,
-        'title' => 'Khóa Học Facebook Ads Chu Minh Hạnh – Level 1 Chuyên Sâu 2025',
-        'category' => 'Khóa học Facebook',
-        'level' => 'Level 1 Chuyên Sâu 2025',
-        'price' => 149999,
-        'old_price' => 6000000,
-        'image_url' => 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop&q=80',
-        'description' => 'Facebook Ads là nền tảng quảng cáo quyền năng giúp tiếp cận hàng triệu khách hàng mục tiêu một cách chính xác. Khóa học này được thiết kế chuyên sâu cho năm 2025, giúp bạn làm chủ từ tư duy mô hình kinh doanh đến kỹ thuật chạy quảng cáo thực chiến. Dù bạn là người mới bắt đầu hay đã từng chạy nhưng không hiệu quả, khóa học sẽ giúp bạn tối ưu chi phí, tăng tỷ lệ chuyển đổi và làm chủ các công cụ bổ trợ như AI, Capcut để bứt phá doanh thu.'
-    ];
-    $course_id = 1;
-}
-
-// Tính toán giá bán Flash Sale (-5% so với giá thường)
-$regular_price = (float)($course['price'] > 0 ? $course['price'] : 149999);
-$old_price     = (float)($course['old_price'] > 0 ? $course['old_price'] : 6000000);
-$flash_price   = round($regular_price * 0.95);
-if ($old_price > $flash_price) {
+// Tính toán giá bán
+$regular_price = (float)($course['price'] > 0 ? $course['price'] : 0);
+$old_price     = (float)($course['old_price'] > 0 ? $course['old_price'] : $regular_price);
+$flash_price   = $regular_price;
+if ($old_price > $flash_price && $old_price > 0) {
     $discount_percent = round((1 - ($flash_price / $old_price)) * 100);
     $savings = $old_price - $flash_price;
 } else {
-    $discount_percent = 50;
-    $savings = 500000;
+    $discount_percent = 0;
+    $savings = 0;
 }
 
 // Đếm số bài học và học viên thực tế
-$lesson_count_res = $conn->query("SELECT COUNT(*) AS total FROM lessons WHERE course_id = $course_id");
-$lesson_count_row = $lesson_count_res ? $lesson_count_res->fetch_assoc() : null;
-$total_lessons = ($lesson_count_row && (int)$lesson_count_row['total'] > 0) ? (int)$lesson_count_row['total'] : 38;
+$total_lessons = 0;
+$stmt_lc = $conn->prepare("SELECT COUNT(*) AS total FROM lessons WHERE course_id = ?");
+if ($stmt_lc) {
+    $stmt_lc->bind_param('i', $course_id);
+    $stmt_lc->execute();
+    $total_lessons = (int)($stmt_lc->get_result()->fetch_assoc()['total'] ?? 0);
+    $stmt_lc->close();
+}
 
-$enroll_count_res = $conn->query("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = $course_id");
-$enroll_count_row = $enroll_count_res ? $enroll_count_res->fetch_assoc() : null;
-$total_students = ($enroll_count_row && (int)$enroll_count_row['total'] > 0) ? (300 + (int)$enroll_count_row['total']) : 349;
+$total_students = 0;
+$stmt_ec = $conn->prepare("SELECT COUNT(*) AS total FROM enrollments WHERE course_id = ? AND status = 'active'");
+if ($stmt_ec) {
+    $stmt_ec->bind_param('i', $course_id);
+    $stmt_ec->execute();
+    $total_students = (int)($stmt_ec->get_result()->fetch_assoc()['total'] ?? 0);
+    $stmt_ec->close();
+}
 
-// Lấy danh sách chương & bài học
-$chapters_data = [];
-$ch_query = $conn->query("SELECT * FROM chapters WHERE course_id = $course_id ORDER BY sort_order ASC, id ASC");
-if ($ch_query && $ch_query->num_rows > 0) {
-    while ($ch = $ch_query->fetch_assoc()) {
-        $ch_id = (int)$ch['id'];
-        $lessons_query = $conn->query("SELECT * FROM lessons WHERE chapter_id = $ch_id ORDER BY sort_order ASC, id ASC");
-        $ch['lessons'] = [];
-        if ($lessons_query && $lessons_query->num_rows > 0) {
-            while ($ls = $lessons_query->fetch_assoc()) {
-                $ch['lessons'][] = $ls;
-            }
-        }
-        $chapters_data[] = $ch;
+// Kiểm tra quyền học và trạng thái đơn hàng của người dùng hiện tại
+$is_enrolled = is_logged_in() && has_course_access($conn, current_user_id(), $course_id);
+$has_pending_order = false;
+if (is_logged_in() && !$is_enrolled) {
+    $uid = current_user_id();
+    $stmt_po = $conn->prepare("SELECT o.id FROM orders o JOIN order_items oi ON oi.order_id = o.id WHERE o.user_id = ? AND oi.course_id = ? AND o.status = 'pending' LIMIT 1");
+    if ($stmt_po) {
+        $stmt_po->bind_param('ii', $uid, $course_id);
+        $stmt_po->execute();
+        $has_pending_order = ($stmt_po->get_result()->num_rows > 0);
+        $stmt_po->close();
     }
 }
 
-// Nếu khóa học này chưa có chapters trong DB, tạo danh mục chuẩn đẹp mắt
-if (empty($chapters_data)) {
-    $chapters_data = [
-        [
-            'id' => 101,
-            'title' => 'Chương 1: Tư duy nền tảng & Thiết lập môi trường thực chiến 2025',
-            'lessons' => [
-                ['id' => 1, 'title' => 'Bài 1: Giới thiệu tổng quan và lộ trình chinh phục', 'duration_minutes' => 15, 'is_free' => 1, 'video_url' => 'https://www.youtube.com/embed/dQw4w9WgXcQ'],
-                ['id' => 2, 'title' => 'Bài 2: Phân tích thuật toán & cập nhật chính sách mới', 'duration_minutes' => 24, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 3, 'title' => 'Bài 3: Chuẩn bị tài nguyên, tài khoản và công cụ cần thiết', 'duration_minutes' => 18, 'is_free' => 0, 'video_url' => ''],
-            ]
-        ],
-        [
-            'id' => 102,
-            'title' => 'Chương 2: Nghiên cứu thị trường, tìm "Mồi Ngon" & Target chuẩn xác',
-            'lessons' => [
-                ['id' => 4, 'title' => 'Bài 4: Công thức tìm kiếm sản phẩm và thị trường ngách', 'duration_minutes' => 30, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 5, 'title' => 'Bài 5: Vẽ chân dung khách hàng mục tiêu & Hành vi mua hàng', 'duration_minutes' => 22, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 6, 'title' => 'Bài 6: Xây dựng tệp đối tượng tùy chỉnh (Custom & Lookalike)', 'duration_minutes' => 28, 'is_free' => 0, 'video_url' => ''],
-            ]
-        ],
-        [
-            'id' => 103,
-            'title' => 'Chương 3: Sáng tạo Content chuyển đổi cao bằng AI & CapCut',
-            'lessons' => [
-                ['id' => 7, 'title' => 'Bài 7: Viết kịch bản video ngắn triệu view chạm cảm xúc', 'duration_minutes' => 25, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 8, 'title' => 'Bài 8: Biên tập video và hình ảnh bắt mắt bằng Capcut & Canva', 'duration_minutes' => 35, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 9, 'title' => 'Bài 9: Test và A/B testing tiêu đề, hook thu hút người xem', 'duration_minutes' => 20, 'is_free' => 0, 'video_url' => ''],
-            ]
-        ],
-        [
-            'id' => 104,
-            'title' => 'Chương 4: Kỹ thuật Setup chiến dịch, Đo lường chỉ số & Tối ưu ngân sách',
-            'lessons' => [
-                ['id' => 10, 'title' => 'Bài 10: Quy trình lên camp mượt mà, hạn chế tối đa khóa nick', 'duration_minutes' => 32, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 11, 'title' => 'Bài 11: Đọc và phân tích chỉ số CTR, CPC, CPM, CPA chuyên nghiệp', 'duration_minutes' => 27, 'is_free' => 0, 'video_url' => ''],
-                ['id' => 12, 'title' => 'Bài 12: Chiến thuật Scale ngân sách x3 x5 doanh thu an toàn', 'duration_minutes' => 40, 'is_free' => 0, 'video_url' => ''],
-            ]
-        ]
-    ];
+// Lấy danh sách chương (sections) & bài học (lessons)
+$chapters_data = [];
+$stmt_sec = $conn->prepare("SELECT * FROM sections WHERE course_id = ? ORDER BY sort_order ASC, id ASC");
+if ($stmt_sec) {
+    $stmt_sec->bind_param('i', $course_id);
+    $stmt_sec->execute();
+    $sec_res = $stmt_sec->get_result();
+    $stmt_ls = $conn->prepare("SELECT * FROM lessons WHERE section_id = ? ORDER BY sort_order ASC, id ASC");
+    $stmt_qz = $conn->prepare("SELECT q.*, (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) AS question_count FROM quizzes q WHERE q.section_id = ? AND q.status = 'published' ORDER BY q.id ASC");
+    while ($sec = $sec_res->fetch_assoc()) {
+        $sec_id = (int)$sec['id'];
+        $sec['lessons'] = [];
+        $sec['quizzes'] = [];
+        if ($stmt_ls) {
+            $stmt_ls->bind_param('i', $sec_id);
+            $stmt_ls->execute();
+            $ls_res = $stmt_ls->get_result();
+            while ($ls = $ls_res->fetch_assoc()) {
+                $sec['lessons'][] = $ls;
+            }
+        }
+        if ($stmt_qz) {
+            $stmt_qz->bind_param('i', $sec_id);
+            $stmt_qz->execute();
+            $qz_res = $stmt_qz->get_result();
+            while ($q = $qz_res->fetch_assoc()) {
+                $sec['quizzes'][] = $q;
+            }
+        }
+        $chapters_data[] = $sec;
+    }
+    if ($stmt_qz) $stmt_qz->close();
+    if ($stmt_ls) $stmt_ls->close();
+    $stmt_sec->close();
 }
 
-// Tìm bài học học thử miễn phí đầu tiên
+// Tìm bài học giới thiệu (is_preview = 1) đầu tiên
 $first_free_lesson = null;
 foreach ($chapters_data as $ch) {
     if (!empty($ch['lessons'])) {
         foreach ($ch['lessons'] as $ls) {
-            if (!empty($ls['is_free'])) {
+            if (!empty($ls['is_preview'])) {
                 $first_free_lesson = $ls;
                 break 2;
             }
@@ -130,9 +121,9 @@ foreach ($chapters_data as $ch) {
     }
 }
 
-// Hình ảnh khóa học
+// Hình ảnh khóa học & tên danh mục
 $course_img = !empty($course['image_url']) ? $course['image_url'] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop&q=80';
-$category_name = !empty($course['category']) ? $course['category'] : 'Khóa học Facebook';
+$category_name = !empty($course['category_name']) ? $course['category_name'] : 'Khóa học';
 
 require_once 'includes/header.php';
 require_once 'includes/menu.php';
@@ -371,7 +362,7 @@ require_once 'includes/menu.php';
                                                         <span class="text-dark fw-medium"><?= htmlspecialchars($lesson['title']) ?></span>
                                                     </div>
                                                     <div class="d-flex align-items-center gap-3">
-                                                        <?php if (!empty($lesson['is_free'])): ?>
+                                                        <?php if (!empty($lesson['is_preview'])): ?>
                                                             <span class="lesson-badge-free" style="cursor: pointer;" onclick='openTrialLesson(<?= htmlspecialchars(json_encode($lesson), ENT_QUOTES) ?>)'>
                                                                 <i class="bi bi-play-fill"></i> Học thử miễn phí
                                                             </span>
@@ -384,7 +375,27 @@ require_once 'includes/menu.php';
                                                     </div>
                                                 </div>
                                             <?php endforeach; ?>
-                                        <?php else: ?>
+                                        <?php endif; ?>
+
+                                        <?php if (!empty($chapter['quizzes'])): ?>
+                                            <?php foreach ($chapter['quizzes'] as $qz): ?>
+                                                <div class="curriculum-lesson-row" style="background-color: rgba(99, 102, 241, 0.05); border-left: 3px solid #6366f1;">
+                                                    <div class="d-flex align-items-center gap-2.5">
+                                                        <i class="bi bi-patch-question-fill text-primary fs-5"></i>
+                                                        <div>
+                                                            <span class="text-dark fw-bold"><?= htmlspecialchars($qz['title']) ?></span>
+                                                            <span class="badge bg-primary-subtle text-primary ms-2">Trắc nghiệm chương</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-3">
+                                                        <span class="badge bg-white text-muted border small"><?= (int)$qz['question_count'] ?> câu</span>
+                                                        <span class="text-muted small"><?= (int)$qz['duration_minutes'] ?> phút</span>
+                                                    </div>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+
+                                        <?php if (empty($chapter['lessons']) && empty($chapter['quizzes'])): ?>
                                             <div class="p-3 text-muted small text-center">Nội dung bài học đang được cập nhật.</div>
                                         <?php endif; ?>
                                     </div>
@@ -443,64 +454,57 @@ require_once 'includes/menu.php';
                             </div>
                         </div>
 
-                        <!-- Danh sách các nút hành động thiết kế chuẩn ảnh mẫu 100% -->
                         <div class="detail-actions-box">
+                            <?php if ($is_enrolled): ?>
+                                <a href="hoc.php?course_id=<?= $course_id ?>" class="btn-study-green">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-mortarboard fs-4 text-success-emphasis"></i>
+                                        <div>
+                                            <div class="fw-bold" style="font-size: 0.95rem;">Vào học ngay</div>
+                                            <div style="font-size: 0.72rem; opacity: 0.85;">Bạn đã sở hữu khóa học này</div>
+                                        </div>
+                                    </div>
+                                    <i class="bi bi-play-circle-fill small"></i>
+                                </a>
+                            <?php elseif ($has_pending_order): ?>
+                                <a href="profile.php?tab=donhang" class="btn btn-warning w-100 fw-bold py-2 rounded-3 text-dark">
+                                    <i class="bi bi-hourglass-split me-1"></i> Đơn hàng đang chờ xác nhận
+                                </a>
+                                <div class="text-muted small text-center">Quản trị viên sẽ xác nhận để cấp quyền học cho bạn.</div>
+                            <?php elseif (is_logged_in()): ?>
+                                <form method="POST" action="order_action.php">
+                                    <input type="hidden" name="action" value="direct_order">
+                                    <input type="hidden" name="course_id" value="<?= $course_id ?>">
+                                    <button type="submit" class="btn btn-flash-buy w-100">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="main-text">Đặt mua khóa học — <?= number_format($regular_price, 0, ',', '.') ?> đ</span>
+                                            <i class="bi bi-arrow-right fs-5"></i>
+                                        </div>
+                                        <span class="sub-text">Tạo đơn hàng mô phỏng · Cấp quyền sau khi xác nhận</span>
+                                    </button>
+                                </form>
+                            <?php else: ?>
+                                <a href="login.php?redirect=<?= urlencode('chitiet_khoahoc.php?id=' . $course_id) ?>" class="btn btn-flash-buy w-100 text-decoration-none">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="main-text">Đăng nhập để đặt mua — <?= number_format($regular_price, 0, ',', '.') ?> đ</span>
+                                        <i class="bi bi-box-arrow-in-right fs-5"></i>
+                                    </div>
+                                    <span class="sub-text">Yêu cầu đăng nhập tài khoản học viên</span>
+                                </a>
+                            <?php endif; ?>
 
-                            <!-- Nút 1: Mua giá Flash màu đỏ nổi bật -->
-                            <button type="button" class="btn btn-flash-buy" data-bs-toggle="modal" data-bs-target="#buyModal">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="main-text">⚡ Mua giá Flash — <?= number_format($flash_price, 0, ',', '.') ?> đ</span>
-                                    <i class="bi bi-arrow-right fs-5"></i>
-                                </div>
-                                <span class="sub-text">Nhận link Google Drive ngay sau thanh toán</span>
-                            </button>
-
-                            <!-- Hàng 2 nút: Thêm vào giỏ + Trái tim Yêu thích -->
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-outline-secondary flex-grow-1 fw-bold py-2 rounded-3 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.88rem;" onclick="handleAddToCart('<?= htmlspecialchars(addslashes($course['title'])) ?>')">
-                                    <i class="bi bi-cart3"></i> Thêm vào giỏ
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary px-3 py-2 rounded-3" title="Thêm vào yêu thích" onclick="toggleFavorite(this)">
-                                    <i class="bi bi-heart"></i>
-                                </button>
-                            </div>
-
-                            <!-- Nút 3: Học thử miễn phí màu tím nhạt -->
+                            <?php if ($first_free_lesson): ?>
                             <a href="javascript:void(0)" class="btn-trial-purple" onclick="openFirstTrialLesson()">
                                 <div class="d-flex align-items-center gap-2">
                                     <i class="bi bi-play-circle fs-4 text-purple"></i>
                                     <div>
-                                        <div class="fw-bold" style="font-size: 0.92rem; color: #6d28d9;">Học thử miễn phí</div>
-                                        <div style="font-size: 0.72rem; color: #7c3aed;">Trải nghiệm trước khi thanh toán</div>
+                                        <div class="fw-bold" style="font-size: 0.92rem; color: #6d28d9;">Xem bài học giới thiệu</div>
+                                        <div style="font-size: 0.72rem; color: #7c3aed;">Trải nghiệm miễn phí trước khi đặt mua</div>
                                     </div>
                                 </div>
                                 <i class="bi bi-box-arrow-up-right small text-purple"></i>
                             </a>
-
-                            <!-- Nút 4: Vào học ngay - dẫn đến trang học trực tuyến -->
-                            <a href="hoc.php?course_id=<?= $course_id ?>" class="btn-study-green">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-mortarboard fs-4 text-success-emphasis"></i>
-                                    <div>
-                                        <div class="fw-bold" style="font-size: 0.92rem;">Vào học ngay</div>
-                                        <div style="font-size: 0.72rem; opacity: 0.85;">Học trực tuyến – Video, Ghi chú, Hỏi đáp</div>
-                                    </div>
-                                </div>
-                                <i class="bi bi-play-circle-fill small"></i>
-                            </a>
-
-                            <!-- Nút 5: Kiếm tiền từ khóa học này / Affiliate màu vàng -->
-                            <a href="javascript:void(0)" class="btn-affiliate-gold" data-bs-toggle="modal" data-bs-target="#affiliateModal">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-share fs-4 text-warning-emphasis"></i>
-                                    <div>
-                                        <div class="fw-bold" style="font-size: 0.92rem; color: #854d0e;">Kiếm tiền từ khóa học này</div>
-                                        <div style="font-size: 0.72rem; color: #a16207;">Nhận từ 30% hoa hồng khi có đơn thành công</div>
-                                    </div>
-                                </div>
-                                <i class="bi bi-chevron-right small text-warning-emphasis"></i>
-                            </a>
-
+                            <?php endif; ?>
                         </div>
 
                         <!-- Danh sách cam kết dịch vụ dưới cùng cột phải -->
@@ -635,7 +639,7 @@ require_once 'includes/menu.php';
                 <label class="form-label fw-bold small text-dark">Link giới thiệu của bạn:</label>
                 <div class="input-group mb-3">
                     <input type="text" id="affiliateLinkInput" class="form-control" readonly 
-                           value="http://<?= $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] ?>?id=<?= $course_id ?>&ref=<?= $_SESSION['user_id'] ?? 1088 ?>">
+                           value="http://<?= htmlspecialchars(($_SERVER['HTTP_HOST'] ?? 'localhost') . ($_SERVER['PHP_SELF'] ?? '')) ?>?id=<?= $course_id ?>&ref=<?= (int)($_SESSION['user_id'] ?? 1088) ?>">
                     <button class="btn btn-warning fw-bold px-3" type="button" onclick="copyAffiliateLink()">
                         <i class="bi bi-clipboard"></i> Sao chép
                     </button>
@@ -687,16 +691,6 @@ function showToast(msg, bgClass = 'bg-dark') {
         toastMsg.innerHTML = msg;
         const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
         toast.show();
-    }
-}
-
-// Xử lý thêm vào giỏ hàng
-function handleAddToCart(courseTitle) {
-    showToast(`🛒 Đã thêm "<b>${courseTitle}</b>" vào giỏ hàng thành công!`, 'bg-success');
-    const badge = document.querySelector('.cart-badge-count');
-    if (badge) {
-        let count = parseInt(badge.innerText || '0') + 1;
-        badge.innerText = count;
     }
 }
 

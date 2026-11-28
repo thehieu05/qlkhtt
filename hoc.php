@@ -2,55 +2,94 @@
 require_once 'config.php';
 
 // Yêu cầu đăng nhập
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
-    exit();
-}
+require_login('login.php');
 
-$user_id   = (int)$_SESSION['user_id'];
+$user_id   = current_user_id();
 $course_id = (int)($_GET['course_id'] ?? 0);
 $lesson_id = (int)($_GET['lesson_id'] ?? 0);
 
-if ($course_id <= 0) { header("Location: index.php"); exit(); }
+if ($course_id <= 0) {
+    header("Location: index.php");
+    exit();
+}
 
 // Lấy thông tin khóa học
-$course_res = $conn->query("SELECT * FROM courses WHERE id = $course_id AND is_active = 1");
-if (!$course_res || $course_res->num_rows === 0) { header("Location: index.php"); exit(); }
-$course = $course_res->fetch_assoc();
+$stmt_c = $conn->prepare("SELECT * FROM courses WHERE id = ? LIMIT 1");
+$stmt_c->bind_param('i', $course_id);
+$stmt_c->execute();
+$course = $stmt_c->get_result()->fetch_assoc();
+$stmt_c->close();
 
-// Tự động đăng ký học nếu chưa có
-$enroll_check = $conn->query("SELECT id FROM enrollments WHERE user_id = $user_id AND course_id = $course_id");
-if (!$enroll_check || $enroll_check->num_rows === 0) {
-    $conn->query("INSERT IGNORE INTO enrollments (user_id, course_id, progress_percent, status) VALUES ($user_id, $course_id, 0, 'active')");
+if (!$course || ($course['status'] !== 'published' && !is_admin())) {
+    set_flash('Khóa học không tồn tại hoặc chưa công khai.', 'warning');
+    header("Location: danh_muc.php");
+    exit();
 }
 
-// Lấy tất cả chương & bài giảng kèm tiến độ
+// Quy tắc 2 & 4: Học viên chỉ truy cập khóa học đã được xác nhận mua (enrollment active)
+if (!is_admin() && !has_course_access($conn, $user_id, $course_id)) {
+    set_flash('Bạn chưa có quyền truy cập khóa học này. Vui lòng đặt mua và chờ quản trị viên xác nhận đơn hàng.', 'warning');
+    header("Location: chitiet_khoahoc.php?id=" . $course_id);
+    exit();
+}
+
+// Lấy tất cả chương (sections) & bài giảng (lessons) kèm tiến độ
 $chapters = [];
-$ch_res = $conn->query("SELECT * FROM chapters WHERE course_id = $course_id ORDER BY sort_order ASC, id ASC");
 $total_lessons = 0;
 $completed_lessons = 0;
-if ($ch_res) {
-    while ($ch = $ch_res->fetch_assoc()) {
-        $ch_id = (int)$ch['id'];
-        $ls_res = $conn->query("SELECT l.*,
-            COALESCE(lp.completed, 0) as is_completed,
-            COALESCE(lp.last_position_seconds, 0) as last_pos
-            FROM lessons l
-            LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $user_id
-            WHERE l.chapter_id = $ch_id
-            ORDER BY l.sort_order ASC, l.id ASC");
-        $lessons = [];
-        if ($ls_res) {
-            while ($ls = $ls_res->fetch_assoc()) {
-                $lessons[] = $ls;
-                $total_lessons++;
-                if ($ls['is_completed']) $completed_lessons++;
-            }
-        }
-        $ch['lessons'] = $lessons;
-        $chapters[] = $ch;
+
+$stmt_sec = $conn->prepare("SELECT * FROM sections WHERE course_id = ? ORDER BY sort_order ASC, id ASC");
+$stmt_sec->bind_param('i', $course_id);
+$stmt_sec->execute();
+$ch_res = $stmt_sec->get_result();
+
+$stmt_ls = $conn->prepare("SELECT l.*,
+    COALESCE(lp.completed, 0) AS is_completed,
+    COALESCE(lp.last_position_seconds, 0) AS last_pos
+    FROM lessons l
+    LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = ?
+    WHERE l.section_id = ?
+    ORDER BY l.sort_order ASC, l.id ASC");
+
+$stmt_ch_qz = $conn->prepare("SELECT q.*,
+    (SELECT COUNT(*) FROM questions WHERE quiz_id = q.id) AS question_count,
+    (SELECT COUNT(*) FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ?) AS attempts_used,
+    (SELECT score FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ? ORDER BY id DESC LIMIT 1) AS last_score,
+    (SELECT passed FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ? ORDER BY id DESC LIMIT 1) AS last_passed
+    FROM quizzes q
+    WHERE q.section_id = ? AND q.status = 'published'
+    ORDER BY q.id ASC");
+
+while ($ch = $ch_res->fetch_assoc()) {
+    $ch_id = (int)$ch['id'];
+    $stmt_ls->bind_param('ii', $user_id, $ch_id);
+    $stmt_ls->execute();
+    $ls_res = $stmt_ls->get_result();
+    $lessons = [];
+    while ($ls = $ls_res->fetch_assoc()) {
+        $lessons[] = $ls;
+        $total_lessons++;
+        if ($ls['is_completed']) $completed_lessons++;
     }
+    $ch['lessons'] = $lessons;
+
+    // Lấy bài trắc nghiệm của chương
+    $ch_quizzes = [];
+    if ($stmt_ch_qz) {
+        $stmt_ch_qz->bind_param('iiii', $user_id, $user_id, $user_id, $ch_id);
+        $stmt_ch_qz->execute();
+        $ch_qz_res = $stmt_ch_qz->get_result();
+        while ($cq = $ch_qz_res->fetch_assoc()) {
+            $ch_quizzes[] = $cq;
+        }
+    }
+    $ch['quizzes'] = $ch_quizzes;
+
+    $chapters[] = $ch;
 }
+if ($stmt_ch_qz) $stmt_ch_qz->close();
+$stmt_ls->close();
+$stmt_sec->close();
 
 // Chọn bài đầu tiên nếu chưa chọn
 if ($lesson_id <= 0 && !empty($chapters)) {
@@ -72,58 +111,44 @@ foreach ($all_lesson_ids as $idx => $lid) {
 
 // Lấy bài học hiện tại
 $current_lesson = null;
+$current_section_id = 0;
 if ($lesson_id > 0) {
-    $ls_q = $conn->query("SELECT l.*,
-        COALESCE(lp.completed, 0) as is_completed,
-        COALESCE(lp.last_position_seconds, 0) as last_pos,
-        COALESCE(lp.watch_seconds, 0) as watch_secs
+    $stmt_cur = $conn->prepare("SELECT l.*,
+        COALESCE(lp.completed, 0) AS is_completed,
+        COALESCE(lp.last_position_seconds, 0) AS last_pos
         FROM lessons l
-        LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $user_id
-        WHERE l.id = $lesson_id AND l.course_id = $course_id");
-    if ($ls_q && $ls_q->num_rows > 0) $current_lesson = $ls_q->fetch_assoc();
-}
-
-// Ghi chú bài học hiện tại
-$notes = [];
-if ($lesson_id > 0) {
-    $notes_res = $conn->query("SELECT * FROM lesson_notes WHERE user_id = $user_id AND lesson_id = $lesson_id ORDER BY video_time_seconds ASC, created_at ASC");
-    if ($notes_res) while ($n = $notes_res->fetch_assoc()) $notes[] = $n;
-}
-
-// Q&A bài học hiện tại
-$qa_posts = [];
-if ($lesson_id > 0) {
-    $qa_res = $conn->query("SELECT q.*, u.fullname, u.role
-        FROM qa_posts q LEFT JOIN users u ON u.id = q.user_id
-        WHERE q.lesson_id = $lesson_id AND q.parent_id = 0
-        ORDER BY q.created_at DESC LIMIT 20");
-    if ($qa_res) {
-        while ($qa = $qa_res->fetch_assoc()) {
-            $qa_id = (int)$qa['id'];
-            $rep_res = $conn->query("SELECT q.*, u.fullname, u.role FROM qa_posts q LEFT JOIN users u ON u.id = q.user_id WHERE q.parent_id = $qa_id ORDER BY q.created_at ASC");
-            $qa['replies'] = [];
-            if ($rep_res) while ($r = $rep_res->fetch_assoc()) $qa['replies'][] = $r;
-            $qa_posts[] = $qa;
-        }
+        LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = ?
+        WHERE l.id = ? AND l.course_id = ? LIMIT 1");
+    $stmt_cur->bind_param('iii', $user_id, $lesson_id, $course_id);
+    $stmt_cur->execute();
+    $cur_res = $stmt_cur->get_result();
+    if ($cur_res && $cur_res->num_rows > 0) {
+        $current_lesson = $cur_res->fetch_assoc();
+        $current_section_id = (int)$current_lesson['section_id'];
     }
+    $stmt_cur->close();
 }
 
-// Lấy đề thi gắn với bài học này (lesson_id)
+$notes = [];
+$qa_posts = [];
+
+// Lấy bài kiểm tra thuộc chương hiện tại hoặc toàn khóa
 $lesson_exams = [];
-if ($lesson_id > 0) {
-    $le_res = $conn->query("SELECT e.*,
-        (SELECT COUNT(*) FROM exam_results WHERE exam_id = e.id AND user_id = $user_id) as attempts_used,
-        (SELECT score FROM exam_results WHERE exam_id = e.id AND user_id = $user_id ORDER BY id DESC LIMIT 1) as last_score,
-        (SELECT passed FROM exam_results WHERE exam_id = e.id AND user_id = $user_id ORDER BY id DESC LIMIT 1) as last_passed
-        FROM exams e
-        WHERE e.lesson_id = $lesson_id AND e.is_active = 1
-        ORDER BY e.id ASC");
-    if ($le_res) while ($ex = $le_res->fetch_assoc()) $lesson_exams[] = $ex;
-}
+$stmt_qz = $conn->prepare("SELECT q.*,
+    (SELECT COUNT(*) FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ?) AS attempts_used,
+    (SELECT score FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ? ORDER BY id DESC LIMIT 1) AS last_score,
+    (SELECT passed FROM quiz_attempts WHERE quiz_id = q.id AND user_id = ? ORDER BY id DESC LIMIT 1) AS last_passed
+    FROM quizzes q
+    WHERE q.course_id = ? AND q.status = 'published' AND (q.section_id IS NULL OR q.section_id = ?)
+    ORDER BY q.id ASC");
+$stmt_qz->bind_param('iiiii', $user_id, $user_id, $user_id, $course_id, $current_section_id);
+$stmt_qz->execute();
+$qz_res = $stmt_qz->get_result();
+while ($ex = $qz_res->fetch_assoc()) $lesson_exams[] = $ex;
+$stmt_qz->close();
 
 // Tiến độ tổng thể
-$progress_percent = $total_lessons > 0 ? round(($completed_lessons / $total_lessons) * 100) : 0;
-$conn->query("UPDATE enrollments SET progress_percent = $progress_percent WHERE user_id = $user_id AND course_id = $course_id");
+$progress_percent = recalculate_course_progress($conn, $user_id, $course_id);
 
 // ===== AJAX HANDLERS =====
 if (isset($_GET['ajax'])) {
@@ -133,60 +158,32 @@ if (isset($_GET['ajax'])) {
     if ($act === 'save_progress' && isset($_POST['lesson_id'])) {
         $ls_id = (int)$_POST['lesson_id'];
         $pos = (int)($_POST['position'] ?? 0);
-        $watch = (int)($_POST['watch_seconds'] ?? 0);
         $completed = isset($_POST['completed']) ? 1 : 0;
-        $completed_at = $completed ? "'" . date('Y-m-d H:i:s') . "'" : 'NULL';
-        $conn->query("INSERT INTO lesson_progress (user_id, lesson_id, course_id, completed, watch_seconds, last_position_seconds, completed_at)
-            VALUES ($user_id, $ls_id, $course_id, $completed, $watch, $pos, $completed_at)
+
+        $stmt_lp = $conn->prepare("INSERT INTO lesson_progress (user_id, course_id, lesson_id, completed, completed_at, last_position_seconds)
+            VALUES (?, ?, ?, ?, IF(? = 1, NOW(), NULL), ?)
             ON DUPLICATE KEY UPDATE
-            completed = IF($completed = 1, 1, completed),
-            watch_seconds = GREATEST(watch_seconds, $watch),
-            last_position_seconds = $pos,
-            completed_at = IF($completed = 1 AND completed_at IS NULL, NOW(), completed_at),
-            updated_at = NOW()");
-        $total_q = $conn->query("SELECT COUNT(*) FROM lessons WHERE course_id = $course_id")->fetch_row()[0] ?? 0;
-        $done_q  = $conn->query("SELECT COUNT(*) FROM lesson_progress WHERE user_id = $user_id AND course_id = $course_id AND completed = 1")->fetch_row()[0] ?? 0;
-        $pct = $total_q > 0 ? round(($done_q / $total_q) * 100) : 0;
-        $conn->query("UPDATE enrollments SET progress_percent = $pct WHERE user_id = $user_id AND course_id = $course_id");
-        echo json_encode(['ok' => true, 'progress' => $pct, 'completed' => $done_q, 'total' => $total_q]);
+            completed = IF(VALUES(completed) = 1, 1, completed),
+            last_position_seconds = VALUES(last_position_seconds),
+            completed_at = IF(VALUES(completed) = 1 AND completed_at IS NULL, NOW(), completed_at)");
+        $stmt_lp->bind_param('iiiiii', $user_id, $course_id, $ls_id, $completed, $completed, $pos);
+        $stmt_lp->execute();
+        $stmt_lp->close();
+
+        $pct = recalculate_course_progress($conn, $user_id, $course_id);
+        $stmt_cnt = $conn->prepare("SELECT
+            (SELECT COUNT(*) FROM lessons WHERE course_id = ?) AS total,
+            (SELECT COUNT(*) FROM lesson_progress WHERE user_id = ? AND course_id = ? AND completed = 1) AS done");
+        $stmt_cnt->bind_param('iii', $course_id, $user_id, $course_id);
+        $stmt_cnt->execute();
+        $cnt = $stmt_cnt->get_result()->fetch_assoc();
+        $stmt_cnt->close();
+
+        echo json_encode(['ok' => true, 'progress' => $pct, 'completed' => (int)$cnt['done'], 'total' => (int)$cnt['total']]);
         exit();
     }
 
-    if ($act === 'add_note' && isset($_POST['lesson_id'], $_POST['note_text'])) {
-        $ls_id = (int)$_POST['lesson_id'];
-        $time_sec = (int)($_POST['video_time'] ?? 0);
-        $text = $conn->real_escape_string(trim($_POST['note_text']));
-        if (!empty($text)) {
-            $conn->query("INSERT INTO lesson_notes (user_id, lesson_id, course_id, note_text, video_time_seconds) VALUES ($user_id, $ls_id, $course_id, '$text', $time_sec)");
-            $note = $conn->query("SELECT * FROM lesson_notes WHERE id = " . $conn->insert_id)->fetch_assoc();
-            echo json_encode(['ok' => true, 'note' => $note]);
-        } else {
-            echo json_encode(['ok' => false, 'msg' => 'Nội dung không được trống.']);
-        }
-        exit();
-    }
-
-    if ($act === 'delete_note' && isset($_POST['note_id'])) {
-        $conn->query("DELETE FROM lesson_notes WHERE id = " . (int)$_POST['note_id'] . " AND user_id = $user_id");
-        echo json_encode(['ok' => true]);
-        exit();
-    }
-
-    if ($act === 'post_qa' && isset($_POST['lesson_id'], $_POST['content'])) {
-        $ls_id = (int)$_POST['lesson_id'];
-        $parent = (int)($_POST['parent_id'] ?? 0);
-        $content = $conn->real_escape_string(trim($_POST['content']));
-        if (!empty($content)) {
-            $conn->query("INSERT INTO qa_posts (lesson_id, course_id, user_id, parent_id, content) VALUES ($ls_id, $course_id, $user_id, $parent, '$content')");
-            $qa = $conn->query("SELECT q.*, u.fullname, u.role FROM qa_posts q LEFT JOIN users u ON u.id = q.user_id WHERE q.id = " . $conn->insert_id)->fetch_assoc();
-            echo json_encode(['ok' => true, 'post' => $qa]);
-        } else {
-            echo json_encode(['ok' => false]);
-        }
-        exit();
-    }
-
-    echo json_encode(['ok' => false]);
+    echo json_encode(['ok' => false, 'msg' => 'Hành động không hỗ trợ.']);
     exit();
 }
 
@@ -198,6 +195,7 @@ $page_title = ($current_lesson ? htmlspecialchars($current_lesson['title']) . ' 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $page_title ?> | EduNova</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -611,7 +609,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
             <div class="meta">
                 <?php if ($current_lesson): ?>
                     <span><i class="bi bi-clock me-1"></i><?= (int)($current_lesson['duration_minutes'] ?? 0) ?>p</span>
-                    <?php if ($current_lesson['is_free'] ?? 0): ?><span class="badge-free">Học thử</span><?php endif; ?>
+                    <?php if ($current_lesson['is_preview'] ?? 0): ?><span class="badge-free">Giới thiệu</span><?php endif; ?>
                     <?php if (!empty($lesson_exams)): ?>
                         <span style="color:var(--indigo);font-size:.75rem;"><i class="bi bi-clipboard-check me-1"></i><?= count($lesson_exams) ?> bài kiểm tra</span>
                     <?php endif; ?>
@@ -656,6 +654,20 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
                         <div><?= nl2br(htmlspecialchars($current_lesson['content'])) ?></div>
                     <?php else: ?>
                         <div class="empty-state"><i class="bi bi-journals"></i><p class="mt-2">Bài học chưa có mô tả.</p></div>
+                    <?php endif; ?>
+
+                    <?php if ($current_lesson && !empty($current_lesson['document_url'])): ?>
+                        <div class="mt-4 p-3 rounded-3" style="background:rgba(20,184,166,.08);border:1px solid rgba(20,184,166,.25);">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-bold text-white small"><i class="bi bi-file-earmark-arrow-down me-1 text-info"></i> Tài liệu bài giảng</div>
+                                    <div class="text-muted" style="font-size:.78rem;">Xem hoặc tải tài liệu đính kèm cho bài học này</div>
+                                </div>
+                                <a href="<?= htmlspecialchars($current_lesson['document_url']) ?>" target="_blank" download class="btn btn-sm btn-info fw-semibold text-dark">
+                                    <i class="bi bi-download me-1"></i> Tải / Xem tài liệu
+                                </a>
+                            </div>
+                        </div>
                     <?php endif; ?>
                 </div>
                 <!-- NAV PREV/NEXT -->
@@ -718,9 +730,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
             <!-- === TAB BÀI KIỂM TRA (inline quiz) === -->
             <div class="tab-pane" id="pane-quiz">
                 <?php if (empty($lesson_exams)): ?>
-                <div class="empty-state"><i class="bi bi-clipboard2"></i><p class="mt-2">Bài học này chưa có bài kiểm tra.</p></div>
+                <div class="empty-state"><i class="bi bi-clipboard2"></i><p class="mt-2">Chương hiện tại chưa có bài kiểm tra trắc nghiệm.</p></div>
                 <?php else: ?>
                 <div class="quiz-tab-content">
+                    <div class="mb-3 d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white"><i class="bi bi-patch-question-fill me-1"></i>Trắc nghiệm chương</span>
+                        <small class="text-muted">Đánh giá kiến thức sau khi hoàn thành các bài học trong chương này</small>
+                    </div>
                     <?php foreach ($lesson_exams as $ex): ?>
                     <?php
                     $ex_id      = (int)$ex['id'];
@@ -728,9 +744,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
                     $att_left   = max(0, (int)$ex['max_attempts'] - $att_used);
                     $last_score = $ex['last_score'];
                     $last_pass  = $ex['last_passed'];
-                    // Đếm số câu
-                    $q_cnt_r = $conn->query("SELECT COUNT(*) FROM exam_questions WHERE exam_id = $ex_id");
-                    $q_cnt   = $q_cnt_r ? (int)$q_cnt_r->fetch_row()[0] : 0;
+                    $stmt_qc = $conn->prepare("SELECT COUNT(*) FROM questions WHERE quiz_id = ?");
+                    $stmt_qc->bind_param('i', $ex_id);
+                    $stmt_qc->execute();
+                    $q_cnt = (int)($stmt_qc->get_result()->fetch_row()[0] ?? 0);
+                    $stmt_qc->close();
                     ?>
                     <div class="ql-exam-card" id="examCard_<?= $ex_id ?>">
                         <!-- Header -->
@@ -767,7 +785,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
                             <?php else: ?>
                             <span style="font-size:.8rem;color:var(--danger);"><i class="bi bi-x-circle me-1"></i>Hết lượt thi</span>
                             <?php endif; ?>
-                            <a href="quiz.php?exam_id=<?= $ex_id ?>&course_id=<?= $course_id ?>" target="_blank" class="btn-sm-t">
+                            <a href="quiz.php?quiz_id=<?= $ex_id ?>&course_id=<?= $course_id ?>" target="_blank" class="btn-sm-t">
                                 <i class="bi bi-box-arrow-up-right me-1"></i>Mở toàn màn hình
                             </a>
                         </div>
@@ -878,9 +896,6 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
                     <?php
                     $is_active = (int)$ls['id'] === $lesson_id;
                     $is_done   = $ls['is_completed'];
-                    // Kiểm tra có exam gắn với bài này không
-                    $ls_exam_r = $conn->query("SELECT COUNT(*) FROM exams WHERE lesson_id = " . (int)$ls['id'] . " AND is_active = 1");
-                    $ls_has_quiz = $ls_exam_r && (int)$ls_exam_r->fetch_row()[0] > 0;
                     ?>
                     <a href="hoc.php?course_id=<?= $course_id ?>&lesson_id=<?= $ls['id'] ?>"
                        class="ls-item <?= $is_active ? 'active' : '' ?> <?= $is_done ? 'done' : '' ?>">
@@ -888,45 +903,33 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
                         <div style="flex:1;min-width:0;">
                             <div class="ls-name"><?= htmlspecialchars($ls['title']) ?></div>
                             <div style="display:flex;gap:5px;margin-top:2px;">
-                                <?php if ($ls['is_free'] ?? 0): ?><span style="font-size:.65rem;background:rgba(20,184,166,.12);color:var(--accent);border-radius:3px;padding:0 5px;">Thử</span><?php endif; ?>
-                                <?php if ($ls_has_quiz): ?><span style="font-size:.65rem;background:rgba(99,102,241,.12);color:var(--indigo);border-radius:3px;padding:0 5px;"><i class="bi bi-clipboard-check"></i></span><?php endif; ?>
+                                <?php if ($ls['is_preview'] ?? 0): ?><span style="font-size:.65rem;background:rgba(20,184,166,.12);color:var(--accent);border-radius:3px;padding:0 5px;">Giới thiệu</span><?php endif; ?>
+                                <?php if (!empty($ls['document_url'])): ?><span style="font-size:.65rem;background:rgba(56,189,248,.12);color:#38bdf8;border-radius:3px;padding:0 5px;"><i class="bi bi-file-earmark-text"></i></span><?php endif; ?>
                             </div>
                         </div>
                         <span class="ls-dur"><?= (int)$ls['duration_minutes'] ?>p</span>
                     </a>
                     <?php endforeach; ?>
+
+                    <?php if (!empty($ch['quizzes'])): ?>
+                        <?php foreach ($ch['quizzes'] as $qz): ?>
+                        <a href="quiz.php?quiz_id=<?= $qz['id'] ?>&course_id=<?= $course_id ?>" target="_blank" class="quiz-item" title="Làm bài kiểm tra trắc nghiệm chương">
+                            <i class="qi-icon bi bi-patch-question-fill text-indigo"></i>
+                            <div style="flex:1;min-width:0;">
+                                <div class="qi-name fw-semibold" style="color:var(--text);"><?= htmlspecialchars($qz['title']) ?></div>
+                                <span style="font-size:.7rem;color:var(--muted);"><?= (int)$qz['question_count'] ?> câu · <?= (int)$qz['duration_minutes'] ?>p · Đạt <?= (int)$qz['pass_score'] ?>%</span>
+                            </div>
+                            <?php if ($qz['last_score'] !== null): ?>
+                                <span class="qi-badge <?= $qz['last_passed'] ? 'bg-success text-white' : 'bg-danger text-white' ?>"><?= (float)$qz['last_score'] ?>%</span>
+                            <?php else: ?>
+                                <span class="qi-badge bg-primary text-white">Làm bài</span>
+                            <?php endif; ?>
+                        </a>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
             <?php endforeach; ?>
-
-            <!-- ĐỀ THI KHÓA HỌC (toàn khóa, không gắn lesson) -->
-            <?php
-            $global_exams = [];
-            $ge_res = $conn->query("SELECT * FROM exams WHERE course_id = $course_id AND (lesson_id = 0 OR lesson_id IS NULL) AND is_active = 1 ORDER BY id ASC");
-            if ($ge_res) while ($ge = $ge_res->fetch_assoc()) $global_exams[] = $ge;
-            ?>
-            <?php if (!empty($global_exams)): ?>
-            <div>
-                <div class="ch-title" onclick="toggleCh('exams')">
-                    <span>
-                        <span class="ch-meta"><?= count($global_exams) ?> đề thi</span>Kiểm tra &amp; Đánh giá
-                    </span>
-                    <i class="bi bi-chevron-down" id="chi-exams"></i>
-                </div>
-                <div class="ch-lessons" id="chl-exams" style="display:none;">
-                    <?php foreach ($global_exams as $ex): ?>
-                    <a href="quiz.php?exam_id=<?= $ex['id'] ?>&course_id=<?= $course_id ?>" target="_blank" class="quiz-item">
-                        <i class="qi-icon bi bi-clipboard2-check"></i>
-                        <div style="flex:1;min-width:0;">
-                            <div class="qi-name"><?= htmlspecialchars($ex['title']) ?></div>
-                            <span style="font-size:.7rem;color:var(--muted);"><?= $ex['duration_minutes'] ?>p · Qua <?= $ex['pass_score'] ?>%</span>
-                        </div>
-                        <i class="bi bi-box-arrow-up-right" style="font-size:.7rem;color:var(--muted);"></i>
-                    </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <?php endif; ?>
         </div>
     </div><!-- /sidebar -->
 

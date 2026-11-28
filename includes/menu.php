@@ -19,6 +19,9 @@
             <li class="nav-item">
                 <a class="nav-link" href="index.php#phan-hoi"><i class="bi bi-star-fill text-warning me-1"></i>Phản hồi</a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link" href="danh_muc.php"><i class="bi bi-collection-play me-1"></i>Tất cả khóa học</a>
+            </li>
         </ul>
         <div class="text-muted small fw-semibold">
             <i class="bi bi-telephone-inbound-fill text-success me-1"></i> Zalo hỗ trợ: <span class="text-dark">0773 308 885</span>

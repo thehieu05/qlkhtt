@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../category_helper.php';
+$header_categories = get_categories_with_counts($conn);
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
 ?>
 <!DOCTYPE html>
@@ -8,6 +10,7 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduNova - Nền tảng Học tập & Chia sẻ Khóa học Trực tuyến</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
     <!-- Bootstrap 5 & Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -54,13 +57,15 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
                     <i class="bi bi-grid-fill text-primary me-1"></i> Danh mục
                 </button>
                 <ul class="dropdown-menu shadow-sm border-0 mt-2">
-                    <li><a class="dropdown-item py-2" href="index.php#khoa-hoc"><i class="bi bi-layers me-2 text-primary"></i>Combo Khóa Học</a></li>
-                    <li><a class="dropdown-item py-2" href="index.php#khoa-hoc"><i class="bi bi-code-square me-2 text-success"></i>Công nghệ thông tin</a></li>
-                    <li><a class="dropdown-item py-2" href="index.php#khoa-hoc"><i class="bi bi-megaphone me-2 text-danger"></i>Kinh doanh & Marketing</a></li>
-                    <li><a class="dropdown-item py-2" href="index.php#khoa-hoc"><i class="bi bi-palette me-2 text-warning"></i>Thiết kế đồ họa</a></li>
-                    <li><a class="dropdown-item py-2" href="index.php#khoa-hoc"><i class="bi bi-translate me-2 text-info"></i>Ngoại ngữ</a></li>
+                    <?php foreach ($header_categories as $hcat): ?>
+                        <li>
+                            <a class="dropdown-item py-2" href="danh_muc.php?cat_id=<?= (int)$hcat['id'] ?>">
+                                <i class="bi <?= e($hcat['icon']) ?> me-2 text-primary"></i><?= e($hcat['name']) ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item fw-bold text-primary" href="index.php#khoa-hoc">Xem tất cả khóa học →</a></li>
+                    <li><a class="dropdown-item fw-bold text-primary" href="danh_muc.php">Xem tất cả khóa học →</a></li>
                 </ul>
             </div>
 
@@ -85,14 +90,8 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
                 </div>
             </form>
 
-            <!-- Khu vực Giỏ hàng & Tài khoản người dùng (giống ảnh mẫu) -->
+            <!-- Khu vực Tài khoản & Đơn hàng người dùng -->
             <div class="header-actions-wrap ms-lg-3 mt-2 mt-lg-0">
-                <!-- Icon Giỏ hàng kèm badge số lượng -->
-                <a href="index.php#goi-hoi-vien" class="header-icon-btn" title="Giỏ hàng">
-                    <i class="bi bi-cart2"></i>
-                    <span class="cart-badge-count">1</span>
-                </a>
-
                 <!-- Dropdown Avatar người dùng kèm chữ Xin chào khi đã đăng nhập -->
                 <div class="dropdown d-flex align-items-center">
                     <button class="user-avatar-btn dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Tài khoản">
@@ -109,11 +108,11 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
                         <?php if (isset($_SESSION['user_id'])): ?>
                             <li class="dropdown-header-custom">
                                 <div class="fw-bold text-dark text-truncate"><?= htmlspecialchars($_SESSION['fullname']) ?></div>
-                                <span class="badge <?= $_SESSION['role'] == 1 ? 'bg-warning text-dark' : 'bg-primary' ?> rounded-pill" style="font-size: 0.7rem;">
-                                    <?= $_SESSION['role'] == 1 ? 'Quản trị viên / Giảng viên' : 'Học viên VIP' ?>
+                                <span class="badge <?= is_admin() ? 'bg-warning text-dark' : 'bg-primary' ?> rounded-pill" style="font-size: 0.7rem;">
+                                    <?= is_admin() ? 'Quản trị viên' : 'Học viên' ?>
                                 </span>
                             </li>
-                            <?php if ($_SESSION['role'] == 1): ?>
+                            <?php if (is_admin()): ?>
                                 <li>
                                     <a class="dropdown-item fw-semibold text-warning-emphasis" href="admin/index.php">
                                         <i class="bi bi-speedometer2 text-warning"></i> Quản trị hệ thống (Admin Panel)
@@ -127,33 +126,8 @@ $search = isset($_GET['q']) ? trim($_GET['q']) : '';
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" href="profile.php?tab=yeucau">
-                                    <i class="bi bi-camera-video"></i> Khóa học theo yêu cầu
-                                </a>
-                            </li>
-                            <li>
                                 <a class="dropdown-item" href="profile.php?tab=donhang">
                                     <i class="bi bi-receipt"></i> Đơn hàng
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="index.php#goi-hoi-vien">
-                                    <i class="bi bi-award"></i> Hội viên
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="profile.php?tab=congcu">
-                                    <i class="bi bi-tools"></i> Công cụ
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="profile.php?tab=affiliate">
-                                    <i class="bi bi-share"></i> Affiliate
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="profile.php?tab=yeuthich">
-                                    <i class="bi bi-heart"></i> Yêu thích
                                 </a>
                             </li>
                             <li>

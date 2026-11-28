@@ -1,31 +1,25 @@
 <?php
-require_once '../config.php';
+require_once __DIR__ . '/../config.php';
 
 // Hỗ trợ truy cập nhanh để kiểm thử
 if (isset($_GET['quick']) && $_GET['quick'] === 'admin') {
     $_SESSION['user_id'] = 1;
-    $_SESSION['fullname'] = 'Thầy Giáo Hiếu';
-    $_SESSION['username'] = 'giangvien';
-    $_SESSION['role'] = 1;
+    $_SESSION['fullname'] = 'Quản Trị Viên EduNova';
+    $_SESSION['username'] = 'admin';
+    $_SESSION['role'] = 'admin';
 }
 
-// Kiểm tra quyền Admin (role = 1)
-if (!isset($_SESSION['user_id']) || (int)($_SESSION['role'] ?? 0) !== 1) {
-    header("Location: ../login.php");
-    exit();
-}
+require_admin('../login.php');
 
 $page_title = 'Dashboard Tổng Quan';
 $active_nav = 'dashboard';
 
 // Thống kê số liệu
-$total_courses  = (int)($conn->query("SELECT COUNT(*) FROM courses")->fetch_row()[0] ?? 0);
-$total_users    = (int)($conn->query("SELECT COUNT(*) FROM users WHERE role = 0")->fetch_row()[0] ?? 0);
-$total_lessons  = (int)($conn->query("SELECT COUNT(*) FROM lessons")->fetch_row()[0] ?? 0);
-$total_chapters = (int)($conn->query("SELECT COUNT(*) FROM chapters")->fetch_row()[0] ?? 0);
-$total_questions = (int)($conn->query("SELECT COUNT(*) FROM questions")->fetch_row()[0] ?? 0);
-$total_exams    = (int)($conn->query("SELECT COUNT(*) FROM exams")->fetch_row()[0] ?? 0);
-$total_enrolls  = (int)($conn->query("SELECT COUNT(*) FROM enrollments")->fetch_row()[0] ?? 0);
+$total_courses   = (int)($conn->query("SELECT COUNT(*) FROM courses")->fetch_row()[0] ?? 0);
+$total_users     = (int)($conn->query("SELECT COUNT(*) FROM users WHERE role = 'student'")->fetch_row()[0] ?? 0);
+$total_orders    = (int)($conn->query("SELECT COUNT(*) FROM orders")->fetch_row()[0] ?? 0);
+$pending_orders  = (int)($conn->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetch_row()[0] ?? 0);
+$total_revenue   = (float)($conn->query("SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status = 'confirmed'")->fetch_row()[0] ?? 0);
 
 // Danh sách học viên đăng ký mới nhất
 $recent_enroll = [];
@@ -40,10 +34,10 @@ if ($res_en) {
 
 // Khóa học mới nhất
 $recent_courses = [];
-$res_c = $conn->query("SELECT c.*, 
-    (SELECT COUNT(*) FROM chapters WHERE course_id = c.id) as chapter_count,
-    (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) as lesson_count,
-    (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) as student_count
+$res_c = $conn->query("SELECT c.*,
+    (SELECT COUNT(*) FROM sections WHERE course_id = c.id) AS chapter_count,
+    (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count,
+    (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id AND status = 'active') AS student_count
     FROM courses c ORDER BY c.id DESC LIMIT 4");
 if ($res_c) {
     while ($row = $res_c->fetch_assoc()) $recent_courses[] = $row;
@@ -90,22 +84,22 @@ include 'admin_layout.php';
     <div class="col-sm-6 col-xl-3">
         <div class="stat-card">
             <div class="icon-wrap bg-warning-subtle text-warning">
-                <i class="bi bi-play-btn-fill"></i>
+                <i class="bi bi-receipt-cutoff"></i>
             </div>
             <div>
-                <div class="stat-value text-dark"><?= number_format($total_lessons) ?></div>
-                <div class="stat-label">Bài giảng đã xuất bản</div>
+                <div class="stat-value text-dark"><?= number_format($total_orders) ?> <small class="fs-6 text-warning">(<?= $pending_orders ?> chờ)</small></div>
+                <div class="stat-label">Đơn hàng</div>
             </div>
         </div>
     </div>
     <div class="col-sm-6 col-xl-3">
         <div class="stat-card">
             <div class="icon-wrap bg-info-subtle text-info">
-                <i class="bi bi-patch-question-fill"></i>
+                <i class="bi bi-currency-dollar"></i>
             </div>
             <div>
-                <div class="stat-value text-dark"><?= number_format($total_questions) ?></div>
-                <div class="stat-label">Câu hỏi trắc nghiệm</div>
+                <div class="stat-value text-dark" style="font-size:1.35rem;"><?= number_format($total_revenue, 0, ',', '.') ?> đ</div>
+                <div class="stat-label">Doanh thu</div>
             </div>
         </div>
     </div>
@@ -155,12 +149,12 @@ include 'admin_layout.php';
                 </a>
             </div>
             <div class="col-md-4 col-lg-3">
-                <a href="ngan_hang_cauhoi.php" class="btn btn-outline-secondary w-100 text-start p-3 h-100 d-flex flex-column justify-content-between">
+                <a href="ql_donhang.php" class="btn btn-outline-warning w-100 text-start p-3 h-100 d-flex flex-column justify-content-between">
                     <div>
-                        <div class="fw-bold mb-1"><i class="bi bi-question-diamond me-1"></i> US-06: Ngân hàng Câu hỏi</div>
-                        <small class="text-muted">Tạo câu hỏi trắc nghiệm, 4 đáp án, mức độ khó & giải thích</small>
+                        <div class="fw-bold mb-1"><i class="bi bi-receipt-cutoff me-1"></i> Quản lý Đơn hàng mô phỏng</div>
+                        <small class="text-muted">Xác nhận đơn hàng, cấp quyền học và theo dõi doanh thu</small>
                     </div>
-                    <span class="badge bg-secondary-subtle text-secondary mt-2 align-self-start">Kho câu hỏi →</span>
+                    <span class="badge bg-warning-subtle text-warning mt-2 align-self-start">Xử lý đơn →</span>
                 </a>
             </div>
             <div class="col-md-4 col-lg-3">

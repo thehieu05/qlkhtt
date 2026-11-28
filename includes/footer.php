@@ -89,17 +89,154 @@
 <!-- Bootstrap 5 JS & Script đếm ngược Flash Sale -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const timerEl = document.getElementById('countdown-timer');
-    if (timerEl) {
-        let totalSeconds = 2 * 3600 + 19 * 60 + 16;
-        setInterval(() => {
-            if (totalSeconds > 0) totalSeconds--;
+    // Đếm ngược & đồng bộ khung giờ Flash Sale theo đúng giờ máy người dùng
+    (function initFlashSaleTimer() {
+        const hrsEl = document.getElementById('fsHours');
+        const minsEl = document.getElementById('fsMinutes');
+        const secsEl = document.getElementById('fsSeconds');
+        const legacyEl = document.getElementById('countdown-timer');
+        const statusPill = document.getElementById('fsHeaderStatusPill');
+        const slotTabs = document.querySelectorAll('.fs-slot-tab');
+
+        let lastActiveHour = undefined;
+
+        function syncWithMachineTime() {
+            const now = new Date();
+            const nowHour = now.getHours();
+            const slots = [9, 12, 15, 18, 21];
+
+            let activeHour = null;
+            for (const h of slots) {
+                if (nowHour >= h && nowHour < h + 3) {
+                    activeHour = h;
+                    break;
+                }
+            }
+
+            const slotChanged = (lastActiveHour !== activeHour);
+            if (slotChanged) {
+                lastActiveHour = activeHour;
+                // Cập nhật trạng thái 5 tab khung giờ theo giờ máy
+                slotTabs.forEach(tab => {
+                    const h = parseInt(tab.dataset.slotHour, 10);
+                    const statusEl = tab.querySelector('.fs-slot-status');
+                    tab.classList.remove('is-active', 'state-past', 'state-active', 'state-upcoming');
+
+                    if (activeHour === null) {
+                        const state = nowHour < h ? 'upcoming' : 'past';
+                        tab.dataset.slotState = state;
+                        tab.classList.add('state-' + state);
+                        tab.disabled = true;
+                        tab.setAttribute('aria-disabled', 'true');
+                        if (statusEl) statusEl.textContent = state === 'upcoming' ? 'SẮP MỞ' : 'ĐÃ QUA';
+                    } else if (h < activeHour) {
+                        tab.dataset.slotState = 'past';
+                        tab.classList.add('state-past');
+                        tab.disabled = true;
+                        tab.setAttribute('aria-disabled', 'true');
+                        if (statusEl) statusEl.textContent = 'ĐÃ QUA';
+                    } else if (h === activeHour) {
+                        tab.dataset.slotState = 'active';
+                        tab.classList.add('state-active', 'is-active');
+                        tab.disabled = false;
+                        tab.removeAttribute('aria-disabled');
+                        if (statusEl) statusEl.textContent = 'ĐANG SALE';
+                    } else {
+                        tab.dataset.slotState = 'upcoming';
+                        tab.classList.add('state-upcoming');
+                        tab.disabled = true;
+                        tab.setAttribute('aria-disabled', 'true');
+                        if (statusEl) statusEl.textContent = 'SẮP MỞ';
+                    }
+                });
+
+                if (statusPill) {
+                    statusPill.innerHTML = activeHour !== null
+                        ? '<span class="fs-status-dot"></span> ĐANG SALE'
+                        : '<i class="bi bi-clock me-1"></i> SẮP MỞ';
+                }
+            }
+
+            // Tính thời gian còn lại tới hết khung giờ đang sale (hoặc tới 09:00 nếu trước 09:00)
+            const target = new Date(now);
+            if (activeHour !== null) {
+                target.setHours(activeHour + 3, 0, 0, 0);
+            } else {
+                target.setHours(9, 0, 0, 0);
+            }
+
+            const totalSeconds = Math.max(0, Math.floor((target.getTime() - now.getTime()) / 1000));
             const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
             const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
             const secs = String(totalSeconds % 60).padStart(2, '0');
-            timerEl.textContent = `${hrs}:${mins}:${secs}`;
-        }, 1000);
+
+            if (hrsEl && minsEl && secsEl) {
+                hrsEl.textContent = hrs;
+                minsEl.textContent = mins;
+                secsEl.textContent = secs;
+            }
+            if (legacyEl) {
+                legacyEl.textContent = `${hrs}:${mins}:${secs}`;
+            }
+        }
+
+        syncWithMachineTime();
+        setInterval(syncWithMachineTime, 1000);
+    })();
+
+    function selectFlashSlot(btn) {
+        if (btn.disabled || btn.dataset.slotState !== 'active') {
+            return;
+        }
+        document.querySelectorAll('.fs-slot-tab').forEach(t => t.classList.remove('is-active'));
+        btn.classList.add('is-active');
+
+        const state = btn.dataset.slotState;
+        const buyBtns = document.querySelectorAll('.fs-buy-btn');
+        const statusPill = document.getElementById('fsHeaderStatusPill');
+
+        if (state === 'active') {
+            if (statusPill) statusPill.innerHTML = '<span class="fs-status-dot"></span> ĐANG SALE';
+            buyBtns.forEach(b => {
+                b.classList.remove('is-disabled');
+                b.innerHTML = '<span>Mua giá Flash</span><i class="bi bi-arrow-right"></i>';
+            });
+        } else {
+            if (statusPill) statusPill.innerHTML = 'ĐÃ KẾT THÚC';
+            buyBtns.forEach(b => {
+                b.classList.add('is-disabled');
+                b.innerHTML = '<span>Khung giờ đã qua</span>';
+            });
+        }
     }
+
+    function toggleFlashFav(btn) {
+        const icon = btn.querySelector('i');
+        if (!icon) return;
+        icon.classList.toggle('bi-heart');
+        icon.classList.toggle('bi-heart-fill');
+        btn.classList.toggle('is-liked');
+    }
+
+    // Giữ cả 3 thanh trên cùng (promo bar, header chính, menu phụ) dính sát nhau khi cuộn trang
+    (function syncStickyTopBars() {
+        const promoBar = document.querySelector('.top-promo-bar');
+        const mainNav = document.querySelector('.main-navbar');
+        const subNav = document.querySelector('.sub-navbar');
+
+        function updateStickyOffsets() {
+            const promoH = promoBar ? promoBar.offsetHeight : 0;
+            if (mainNav) {
+                mainNav.style.top = promoH + 'px';
+            }
+            const mainH = mainNav ? mainNav.offsetHeight : 0;
+            if (subNav) {
+                subNav.style.top = (promoH + mainH) + 'px';
+            }
+        }
+        updateStickyOffsets();
+        window.addEventListener('resize', updateStickyOffsets);
+    })();
 </script>
 </body>
 </html>

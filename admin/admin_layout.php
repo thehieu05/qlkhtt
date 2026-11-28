@@ -12,6 +12,7 @@ $active_nav = $active_nav ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($page_title) ?> — EduNova Admin</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -152,22 +153,25 @@ $active_nav = $active_nav ?? '';
         </a>
 
         <div class="nav-section-label">Nội dung</div>
+        <a class="nav-link <?= $active_nav==='danhmuc'?'active':'' ?>" href="ql_danhmuc.php">
+            <i class="bi bi-folder2-open"></i> Danh mục môn học
+        </a>
         <a class="nav-link <?= $active_nav==='khoahoc'?'active':'' ?>" href="ql_khoahoc.php">
             <i class="bi bi-collection-play-fill"></i> Khóa học
         </a>
         <a class="nav-link <?= $active_nav==='chuongmuc'?'active':'' ?>" href="ql_chuongmuc.php">
-            <i class="bi bi-journals"></i> Chương mục & Bài giảng
+            <i class="bi bi-journals"></i> Chương & Bài giảng
         </a>
 
-        <div class="nav-section-label">Học viên & Thi</div>
-        <a class="nav-link <?= $active_nav==='hocvien'?'active':'' ?>" href="ql_hocvien.php">
-            <i class="bi bi-people-fill"></i> Học viên
+        <div class="nav-section-label">Kinh doanh & Học viên</div>
+        <a class="nav-link <?= $active_nav==='donhang'?'active':'' ?>" href="ql_donhang.php">
+            <i class="bi bi-receipt-cutoff"></i> Đơn hàng
         </a>
-        <a class="nav-link <?= $active_nav==='cauhoi'?'active':'' ?>" href="ngan_hang_cauhoi.php">
-            <i class="bi bi-patch-question-fill"></i> Ngân hàng Câu hỏi
+        <a class="nav-link <?= $active_nav==='hocvien'?'active':'' ?>" href="ql_hocvien.php">
+            <i class="bi bi-people-fill"></i> Học viên & Tiến độ
         </a>
         <a class="nav-link <?= $active_nav==='thi'?'active':'' ?>" href="ql_thi.php">
-            <i class="bi bi-clipboard2-check-fill"></i> Quản lý Thi
+            <i class="bi bi-clipboard2-check-fill"></i> Trắc nghiệm & Câu hỏi
         </a>
 
         <div class="nav-section-label">Báo cáo</div>

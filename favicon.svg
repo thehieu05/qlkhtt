@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="edunovaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="50%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#edunovaGrad)"/>
+  <path d="M32 15L12 26L32 37L52 26L32 15Z" fill="#ffffff"/>
+  <path d="M20 31.4V42C20 42 25 47 32 47C39 47 44 42 44 42V31.4L32 38L20 31.4Z" fill="#ffffff" fill-opacity="0.86"/>
+  <path d="M52 28V40" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M47 15C47 17.6 48.4 19 51 19C48.4 19 47 20.4 47 23C47 20.4 45.6 19 43 19C45.6 19 47 17.6 47 15Z" fill="#fbbf24"/>
+</svg>

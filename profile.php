@@ -1,104 +1,124 @@
 <?php
 require_once 'config.php';
 
-// Kiểm tra đăng nhập
-if (!isset($_SESSION['user_id'])) {
+require_login('login.php');
+
+$user_id = current_user_id();
+$stmt_u = $conn->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+$stmt_u->bind_param('i', $user_id);
+$stmt_u->execute();
+$current_user = $stmt_u->get_result()->fetch_assoc();
+$stmt_u->close();
+
+if (!$current_user || $current_user['status'] !== 'active') {
+    session_destroy();
     header("Location: login.php");
     exit();
 }
 
-$user_id = (int)$_SESSION['user_id'];
-$user_res = $conn->query("SELECT * FROM users WHERE id = $user_id LIMIT 1");
-$current_user = ($user_res && $user_res->num_rows > 0) ? $user_res->fetch_assoc() : null;
-
-// XỬ LÝ POST: CẬP NHẬT THÔNG TIN / ĐỔI MẬT KHẨU TRONG TAB CÀI ĐẶT
+// XỬ LÝ POST: CẬP NHẬT THÔNG TIN / ĐỔI MẬT KHẨU
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // 1. Cập nhật thông tin cá nhân
     if ($action === 'update_profile') {
         $new_fullname = trim($_POST['fullname'] ?? '');
         $new_phone    = trim($_POST['phone'] ?? '');
 
-        if (!empty($new_fullname)) {
-            $s_fn = $conn->real_escape_string($new_fullname);
-            $s_ph = $conn->real_escape_string($new_phone);
-            $conn->query("UPDATE users SET fullname = '$s_fn', phone = '$s_ph' WHERE id = $user_id");
+        if ($new_fullname !== '') {
+            $stmt_upd = $conn->prepare("UPDATE users SET fullname = ?, phone = ? WHERE id = ?");
+            $stmt_upd->bind_param('ssi', $new_fullname, $new_phone, $user_id);
+            $stmt_upd->execute();
+            $stmt_upd->close();
             $_SESSION['fullname'] = $new_fullname;
-            $_SESSION['flash_msg'] = "Lưu thay đổi thông tin cá nhân thành công!";
-            $_SESSION['flash_type'] = "success";
+            set_flash('Lưu thay đổi thông tin cá nhân thành công!', 'success');
         } else {
-            $_SESSION['flash_msg'] = "Vui lòng nhập tên hiển thị!";
-            $_SESSION['flash_type'] = "danger";
+            set_flash('Vui lòng nhập họ và tên!', 'danger');
         }
         header("Location: profile.php?tab=caidat");
         exit();
     }
 
-    // 2. Đổi mật khẩu tài khoản
     if ($action === 'change_password') {
-        $curr_pass    = trim($_POST['current_password'] ?? '');
-        $new_pass     = trim($_POST['new_password'] ?? '');
-        $confirm_pass = trim($_POST['confirm_password'] ?? '');
+        $curr_pass    = $_POST['current_password'] ?? '';
+        $new_pass     = $_POST['new_password'] ?? '';
+        $confirm_pass = $_POST['confirm_password'] ?? '';
 
         $db_pass = $current_user['password'] ?? '';
-        if ($curr_pass !== $db_pass) {
-            $_SESSION['flash_msg'] = "Mật khẩu hiện tại không chính xác! Vui lòng thử lại.";
-            $_SESSION['flash_type'] = "danger";
-        } elseif (empty($new_pass) || strlen($new_pass) < 6) {
-            $_SESSION['flash_msg'] = "Mật khẩu mới phải có ít nhất 6 ký tự!";
-            $_SESSION['flash_type'] = "danger";
+        if (!password_verify($curr_pass, $db_pass)) {
+            set_flash('Mật khẩu hiện tại không chính xác! Vui lòng thử lại.', 'danger');
+        } elseif (strlen($new_pass) < 6) {
+            set_flash('Mật khẩu mới phải có ít nhất 6 ký tự!', 'danger');
         } elseif ($new_pass !== $confirm_pass) {
-            $_SESSION['flash_msg'] = "Nhập lại mật khẩu mới không trùng khớp!";
-            $_SESSION['flash_type'] = "danger";
+            set_flash('Nhập lại mật khẩu mới không trùng khớp!', 'danger');
         } else {
-            $s_np = $conn->real_escape_string($new_pass);
-            $conn->query("UPDATE users SET password = '$s_np' WHERE id = $user_id");
-            $_SESSION['flash_msg'] = "Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới của bạn.";
-            $_SESSION['flash_type'] = "success";
+            $hashed = password_hash($new_pass, PASSWORD_BCRYPT);
+            $stmt_pw = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt_pw->bind_param('si', $hashed, $user_id);
+            $stmt_pw->execute();
+            $stmt_pw->close();
+            set_flash('Đổi mật khẩu thành công!', 'success');
         }
         header("Location: profile.php?tab=caidat");
         exit();
     }
 }
 
-$username = htmlspecialchars($current_user['username'] ?? $_SESSION['username'] ?? $_SESSION['fullname'] ?? 'laubmg4ij');
-$fullname = htmlspecialchars($current_user['fullname'] ?? $_SESSION['fullname'] ?? $username);
-$role     = (int)($current_user['role'] ?? $_SESSION['role'] ?? 0);
+$username = htmlspecialchars($current_user['username'] ?? '');
+$fullname = htmlspecialchars($current_user['fullname'] ?? '');
+$role     = $current_user['role'] ?? 'student';
 $phone    = htmlspecialchars($current_user['phone'] ?? '');
+$email    = htmlspecialchars($current_user['email'] ?? '');
 
-// Định dạng email hiển thị
-if (!empty($current_user['email'])) {
-    $email = $current_user['email'];
-} elseif (strpos($username, '@') !== false) {
-    $email = $username;
-} else {
-    $email = $username . "@mozmail.com";
-}
+$active_tab = $_GET['tab'] ?? 'khoahoc';
 
-// Lấy tab hiện tại từ query string (?tab=caidat, ?tab=donhang,...)
-$active_tab = $_GET['tab'] ?? 'donhang';
-
-// Lấy danh sách khóa học thực tế của học viên từ bảng enrollments
-$courses_query = $conn->query("SELECT c.*, COALESCE(e.progress_percent, 0) as progress_percent, e.enrolled_at, e.status as enroll_status 
-    FROM enrollments e 
-    JOIN courses c ON c.id = e.course_id 
-    WHERE e.user_id = $user_id 
-    ORDER BY e.id DESC");
+// Lấy danh sách khóa học đã được cấp quyền học (chỉ enrollments active)
 $user_courses = [];
-if ($courses_query && $courses_query->num_rows > 0) {
-    while ($row = $courses_query->fetch_assoc()) {
-        $user_courses[] = $row;
-    }
-} else {
-    // Nếu chưa có khóa học ghi danh, hiển thị các khóa học mẫu có sẵn
-    $courses_fallback = $conn->query("SELECT c.*, 0 as progress_percent, 'active' as enroll_status FROM courses c WHERE c.is_active = 1 ORDER BY c.id DESC LIMIT 6");
-    if ($courses_fallback) {
-        while ($row = $courses_fallback->fetch_assoc()) {
-            $user_courses[] = $row;
-        }
-    }
+$stmt_ec = $conn->prepare("SELECT c.*, COALESCE(e.progress_percent, 0) AS progress_percent, e.enrolled_at, e.status AS enroll_status
+                           FROM enrollments e
+                           JOIN courses c ON c.id = e.course_id
+                           WHERE e.user_id = ? AND e.status = 'active'
+                           ORDER BY e.id DESC");
+$stmt_ec->bind_param('i', $user_id);
+$stmt_ec->execute();
+$res_ec = $stmt_ec->get_result();
+while ($row = $res_ec->fetch_assoc()) {
+    $user_courses[] = $row;
 }
+$stmt_ec->close();
+
+// Lấy danh sách đơn hàng mô phỏng của học viên
+$orders_list = [];
+$stmt_ord = $conn->prepare("SELECT o.*,
+                            GROUP_CONCAT(c.title SEPARATOR ', ') AS course_titles
+                            FROM orders o
+                            LEFT JOIN order_items oi ON oi.order_id = o.id
+                            LEFT JOIN courses c ON c.id = oi.course_id
+                            WHERE o.user_id = ?
+                            GROUP BY o.id
+                            ORDER BY o.id DESC");
+$stmt_ord->bind_param('i', $user_id);
+$stmt_ord->execute();
+$res_ord = $stmt_ord->get_result();
+while ($orow = $res_ord->fetch_assoc()) {
+    $orders_list[] = $orow;
+}
+$stmt_ord->close();
+
+// Lấy lịch sử làm bài trắc nghiệm
+$quiz_attempts = [];
+$stmt_qa = $conn->prepare("SELECT qa.*, q.title AS quiz_title, q.pass_score, c.title AS course_title, c.id AS course_id
+                           FROM quiz_attempts qa
+                           JOIN quizzes q ON q.id = qa.quiz_id
+                           JOIN courses c ON c.id = q.course_id
+                           WHERE qa.user_id = ?
+                           ORDER BY qa.id DESC");
+$stmt_qa->bind_param('i', $user_id);
+$stmt_qa->execute();
+$res_qa = $stmt_qa->get_result();
+while ($qarow = $res_qa->fetch_assoc()) {
+    $quiz_attempts[] = $qarow;
+}
+$stmt_qa->close();
 
 require_once 'includes/header.php';
 require_once 'includes/menu.php';
@@ -186,7 +206,7 @@ require_once 'includes/menu.php';
                         <div>
                             <div class="stat-label">Hội viên</div>
                             <div class="stat-value stat-text-badge text-warning-emphasis fw-bold" style="font-size: 0.92rem;">
-                                <?= $role == 1 ? 'Giảng viên' : 'Chưa tham gia' ?>
+                                <?= $role === 'admin' ? 'Quản trị viên' : 'Học viên' ?>
                             </div>
                         </div>
                     </div>
@@ -199,12 +219,7 @@ require_once 'includes/menu.php';
             <ul class="nav profile-nav-tabs">
                 <li class="nav-item">
                     <a class="nav-link <?= $active_tab === 'khoahoc' ? 'active' : '' ?>" href="profile.php?tab=khoahoc">
-                        <i class="bi bi-collection-play me-1.5"></i> Khóa học đã mua
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $active_tab === 'yeucau' ? 'active' : '' ?>" href="profile.php?tab=yeucau">
-                        <i class="bi bi-camera-video me-1.5"></i> Khóa học theo yêu cầu
+                        <i class="bi bi-collection-play me-1.5"></i> Khóa học của tôi
                     </a>
                 </li>
                 <li class="nav-item">
@@ -213,28 +228,13 @@ require_once 'includes/menu.php';
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link <?= $active_tab === 'hoivien' ? 'active' : '' ?>" href="index.php#goi-hoi-vien">
-                        <i class="bi bi-award me-1.5"></i> Hội viên
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $active_tab === 'congcu' ? 'active' : '' ?>" href="profile.php?tab=congcu">
-                        <i class="bi bi-tools me-1.5"></i> Công cụ
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $active_tab === 'affiliate' ? 'active' : '' ?>" href="profile.php?tab=affiliate">
-                        <i class="bi bi-share me-1.5"></i> Affiliate
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link <?= $active_tab === 'yeuthich' ? 'active' : '' ?>" href="profile.php?tab=yeuthich">
-                        <i class="bi bi-heart me-1.5"></i> Yêu thích
+                    <a class="nav-link <?= $active_tab === 'ketqua' ? 'active' : '' ?>" href="profile.php?tab=ketqua">
+                        <i class="bi bi-clipboard2-check me-1.5"></i> Lịch sử làm kiểm tra
                     </a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link <?= $active_tab === 'caidat' ? 'active' : '' ?>" href="profile.php?tab=caidat">
-                        <i class="bi bi-gear me-1.5"></i> Cài đặt
+                        <i class="bi bi-gear me-1.5"></i> Thông tin cá nhân
                     </a>
                 </li>
             </ul>
@@ -370,36 +370,64 @@ require_once 'includes/menu.php';
                     <table class="table order-custom-table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th scope="col" style="width: 15%;">MÃ ĐƠN</th>
-                                <th scope="col" style="width: 18%;">NGÀY ĐẶT</th>
-                                <th scope="col" style="width: 28%;">TRẠNG THÁI</th>
-                                <th scope="col" style="width: 20%;">TỔNG TIỀN</th>
-                                <th scope="col" class="text-end" style="width: 19%;">THAO TÁC</th>
+                                <th scope="col" style="width: 16%;">MÃ ĐƠN</th>
+                                <th scope="col" style="width: 24%;">KHÓA HỌC</th>
+                                <th scope="col" style="width: 15%;">NGÀY ĐẶT</th>
+                                <th scope="col" style="width: 18%;">TRẠNG THÁI</th>
+                                <th scope="col" style="width: 13%;">TỔNG TIỀN</th>
+                                <th scope="col" class="text-end" style="width: 14%;">THAO TÁC</th>
                             </tr>
                         </thead>
                         <tbody>
+                            <?php if (!empty($orders_list)):
+                                foreach ($orders_list as $ord):
+                                    $st = $ord['status'] ?? 'pending';
+                            ?>
                             <tr>
-                                <td class="fw-bold text-dark font-monospace" style="font-size: 0.88rem;">#1806889</td>
-                                <td class="text-secondary small">28/10/2026</td>
+                                <td class="fw-bold text-dark font-monospace" style="font-size: 0.85rem;">#<?= e($ord['order_code']) ?></td>
+                                <td class="small text-dark fw-medium"><?= e($ord['course_titles'] ?: 'Khóa học') ?></td>
+                                <td class="text-secondary small"><?= date('d/m/Y H:i', strtotime($ord['created_at'])) ?></td>
                                 <td>
-                                    <span class="status-pill status-pill-info">
-                                        <span class="status-dot"></span> Điền thông tin thanh toán
-                                    </span>
+                                    <?php if ($st === 'confirmed'): ?>
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1">
+                                            <i class="bi bi-check-circle-fill me-1"></i>Đã xác nhận
+                                        </span>
+                                    <?php elseif ($st === 'cancelled'): ?>
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1">
+                                            <i class="bi bi-x-circle-fill me-1"></i>Đã hủy
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-3 py-1">
+                                            <i class="bi bi-hourglass-split me-1"></i>Chờ xác nhận
+                                        </span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
-                                    <span class="fw-bold text-danger" style="font-size: 1rem;">149.999 ₫</span>
+                                    <span class="fw-bold text-danger"><?= number_format((float)$ord['total_amount'], 0, ',', '.') ?> ₫</span>
                                 </td>
                                 <td class="text-end">
-                                    <div class="d-inline-flex flex-column gap-1.5">
-                                        <a href="chitiet_khoahoc.php?id=3" class="btn btn-outline-secondary btn-sm px-3 rounded-2 fw-semibold" style="font-size: 0.8rem;">
-                                            Chi tiết →
+                                    <?php if ($st === 'confirmed'): ?>
+                                        <a href="profile.php?tab=khoahoc" class="btn btn-outline-primary btn-sm px-3 rounded-2 fw-semibold">
+                                            Vào học →
                                         </a>
-                                        <a href="chitiet_khoahoc.php?id=3" class="btn btn-dark btn-sm px-3 rounded-2 fw-semibold d-inline-flex align-items-center justify-content-center gap-1" style="font-size: 0.8rem;">
-                                            Điền thông tin <i class="bi bi-box-arrow-up-right" style="font-size: 0.7rem;"></i>
-                                        </a>
-                                    </div>
+                                    <?php elseif ($st === 'pending'): ?>
+                                        <form method="POST" action="order_action.php" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này?');">
+                                            <input type="hidden" name="action" value="cancel_order">
+                                            <input type="hidden" name="order_id" value="<?= (int)$ord['id'] ?>">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm px-2 rounded-2">Hủy đơn</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-muted small">—</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
+                            <?php endforeach; else: ?>
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    Bạn chưa có đơn hàng nào. <a href="danh_muc.php" class="fw-semibold">Khám phá khóa học</a>.
+                                </td>
+                            </tr>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -462,6 +490,61 @@ require_once 'includes/menu.php';
                         Bạn chưa đăng ký khóa học nào. <a href="index.php#khoa-hoc">Xem danh sách khóa học</a>
                     </div>
                 <?php endif; ?>
+            </div>
+
+        <!-- ========================================== -->
+        <!-- TAB CONTENT 4: LỊCH SỬ TRẮC NGHIỆM -->
+        <!-- ========================================== -->
+        <?php elseif ($active_tab === 'ketqua'): ?>
+            <div class="mb-3">
+                <span class="text-uppercase fw-bold text-warning-emphasis small" style="font-size: 0.72rem; letter-spacing: 1px;">KIỂM TRA & ĐÁNH GIÁ</span>
+                <h4 class="fw-bold text-dark mb-0" style="font-size: 1.4rem;">Lịch sử làm bài trắc nghiệm</h4>
+            </div>
+            <div class="order-table-card">
+                <div class="table-responsive">
+                    <table class="table order-custom-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>BÀI KIỂM TRA</th>
+                                <th>KHÓA HỌC</th>
+                                <th>ĐIỂM SỐ</th>
+                                <th>TRẢ LỜI ĐÚNG</th>
+                                <th>KẾT QUẢ</th>
+                                <th>THỜI GIAN NỘP</th>
+                                <th class="text-end">CHI TIẾT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($quiz_attempts)): ?>
+                                <?php foreach ($quiz_attempts as $qa): ?>
+                                <tr>
+                                    <td class="fw-semibold text-dark"><?= e($qa['quiz_title']) ?></td>
+                                    <td class="small text-secondary"><?= e($qa['course_title']) ?></td>
+                                    <td class="fw-bold text-primary"><?= number_format((float)$qa['score'], 1) ?>%</td>
+                                    <td class="small"><?= (int)$qa['correct_count'] ?>/<?= (int)$qa['total_questions'] ?> câu</td>
+                                    <td>
+                                        <?php if ($qa['passed']): ?>
+                                            <span class="badge bg-success-subtle text-success rounded-pill px-3">Đạt</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-danger-subtle text-danger rounded-pill px-3">Chưa đạt</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="small text-muted"><?= date('d/m/Y H:i', strtotime($qa['submitted_at'] ?? $qa['started_at'])) ?></td>
+                                    <td class="text-end">
+                                        <a href="quiz.php?quiz_id=<?= (int)$qa['quiz_id'] ?>&attempt_id=<?= (int)$qa['id'] ?>" class="btn btn-outline-primary btn-sm rounded-2">Xem lại</a>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">
+                                        Bạn chưa thực hiện bài kiểm tra trắc nghiệm nào.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
         <!-- ========================================== -->

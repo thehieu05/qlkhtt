@@ -1,76 +1,63 @@
 <?php
-/**
- * hoc_quiz_data.php
- * Trả về JSON câu hỏi của một đề thi để hiển thị inline trong hoc.php
- */
 require_once 'config.php';
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['ok' => false, 'msg' => 'Chưa đăng nhập']);
+if (!is_logged_in()) {
+    echo json_encode(['error' => 'Chưa đăng nhập']);
     exit();
 }
 
-$user_id   = (int)$_SESSION['user_id'];
-$exam_id   = (int)($_GET['exam_id']   ?? 0);
-$lesson_id = (int)($_GET['lesson_id'] ?? 0);
-$course_id = (int)($_GET['course_id'] ?? 0);
-
-if ($exam_id <= 0) {
-    echo json_encode(['ok' => false, 'msg' => 'Thiếu exam_id']);
+$user_id = current_user_id();
+$quiz_id = (int)($_GET['quiz_id'] ?? $_GET['exam_id'] ?? 0);
+if ($quiz_id <= 0) {
+    echo json_encode(['error' => 'Bài kiểm tra không hợp lệ']);
     exit();
 }
 
-// Lấy thông tin đề thi
-$exam_res = $conn->query("SELECT * FROM exams WHERE id = $exam_id AND is_active = 1");
-if (!$exam_res || $exam_res->num_rows === 0) {
-    echo json_encode(['ok' => false, 'msg' => 'Đề thi không tồn tại']);
-    exit();
-}
-$exam = $exam_res->fetch_assoc();
+$stmt = $conn->prepare("SELECT * FROM quizzes WHERE id = ? AND status = 'published' LIMIT 1");
+$stmt->bind_param('i', $quiz_id);
+$stmt->execute();
+$quiz = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-// Kiểm tra số lần thi
-$att_res  = $conn->query("SELECT COUNT(*) FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id");
-$att_used = $att_res ? (int)$att_res->fetch_row()[0] : 0;
-if ($att_used >= (int)$exam['max_attempts']) {
-    echo json_encode(['ok' => false, 'msg' => 'Đã hết lượt thi']);
+if (!$quiz) {
+    echo json_encode(['error' => 'Bài kiểm tra không tồn tại hoặc đã bị ẩn']);
     exit();
 }
 
-// Lấy câu hỏi
-$q_res = $conn->query("SELECT q.*, eq.sort_order
-    FROM exam_questions eq
-    JOIN questions q ON q.id = eq.question_id
-    WHERE eq.exam_id = $exam_id
-    ORDER BY eq.sort_order ASC");
+if (!is_admin() && !has_course_access($conn, $user_id, (int)$quiz['course_id'])) {
+    echo json_encode(['error' => 'Bạn chưa được cấp quyền học khóa học này']);
+    exit();
+}
+
+$stmt_att = $conn->prepare("SELECT COUNT(*) FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?");
+$stmt_att->bind_param('ii', $user_id, $quiz_id);
+$stmt_att->execute();
+$used = (int)($stmt_att->get_result()->fetch_row()[0] ?? 0);
+$stmt_att->close();
+
+if ($used >= (int)$quiz['max_attempts']) {
+    echo json_encode(['error' => 'Bạn đã hết lượt làm bài kiểm tra này']);
+    exit();
+}
 
 $questions = [];
-if ($q_res) {
-    while ($q = $q_res->fetch_assoc()) {
-        $questions[] = [
-            'id'            => (int)$q['id'],
-            'question_text' => $q['question_text'],
-            'option_a'      => $q['option_a'],
-            'option_b'      => $q['option_b'],
-            'option_c'      => $q['option_c'],
-            'option_d'      => $q['option_d'],
-        ];
-    }
+$stmt_q = $conn->prepare("SELECT id, question_text, option_a, option_b, option_c, option_d FROM questions WHERE quiz_id = ? ORDER BY sort_order ASC, id ASC");
+$stmt_q->bind_param('i', $quiz_id);
+$stmt_q->execute();
+$q_res = $stmt_q->get_result();
+while ($q = $q_res->fetch_assoc()) {
+    $questions[] = $q;
 }
-
-// Xáo câu hỏi nếu cần
-if ((int)$exam['shuffle_questions'] === 1) shuffle($questions);
+$stmt_q->close();
 
 echo json_encode([
-    'ok'        => true,
-    'exam'      => [
-        'id'               => (int)$exam['id'],
-        'title'            => $exam['title'],
-        'duration_minutes' => (int)$exam['duration_minutes'],
-        'pass_score'       => (int)$exam['pass_score'],
-        'max_attempts'     => (int)$exam['max_attempts'],
+    'exam' => [
+        'id'               => (int)$quiz['id'],
+        'title'            => $quiz['title'],
+        'duration_minutes' => (int)$quiz['duration_minutes'],
+        'pass_score'       => (int)$quiz['pass_score'],
+        'attempts_left'    => (int)$quiz['max_attempts'] - $used,
     ],
     'questions' => $questions,
-    'attempts_used' => $att_used,
-    'attempts_left' => max(0, (int)$exam['max_attempts'] - $att_used),
-]);
+], JSON_UNESCAPED_UNICODE);

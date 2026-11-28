@@ -4,60 +4,87 @@ require_once 'config.php';
 $error = "";
 $success = "";
 $active_tab = "login";
-
-
+$redirect = trim($_GET['redirect'] ?? $_POST['redirect'] ?? '');
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $action = $_POST['action'] ?? 'login';
     if ($action === 'register') {
         $active_tab = "register";
-        $reg_username = trim($conn->real_escape_string($_POST['reg_username'] ?? ''));
+        $reg_username = trim($_POST['reg_username'] ?? '');
+        $reg_email    = trim($_POST['reg_email'] ?? '');
         $reg_password = $_POST['reg_password'] ?? '';
-        $reg_fullname = trim($conn->real_escape_string($_POST['reg_fullname'] ?? ''));
+        $reg_fullname = trim($_POST['reg_fullname'] ?? '');
 
-        if (empty($reg_username) || empty($reg_password) || empty($reg_fullname)) {
-            $error = "Vui lòng nhập đầy đủ họ tên, tên đăng nhập và mật khẩu!";
+        if ($reg_username === '' || $reg_email === '' || $reg_password === '' || $reg_fullname === '') {
+            $error = "Vui lòng nhập đầy đủ họ tên, tên đăng nhập, email và mật khẩu!";
+        } elseif (!filter_var($reg_email, FILTER_VALIDATE_EMAIL)) {
+            $error = "Địa chỉ email không hợp lệ!";
+        } elseif (strlen($reg_password) < 6) {
+            $error = "Mật khẩu phải có ít nhất 6 ký tự!";
         } else {
-            // Kiểm tra tên đăng nhập đã tồn tại chưa
-            $check = $conn->query("SELECT id FROM users WHERE username = '$reg_username'");
-            if ($check && $check->num_rows > 0) {
-                $error = "Tên đăng nhập '<b>" . htmlspecialchars($reg_username) . "</b>' đã tồn tại. Vui lòng chọn tên khác!";
+            $stmt_chk = $conn->prepare("SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1");
+            $stmt_chk->bind_param('ss', $reg_username, $reg_email);
+            $stmt_chk->execute();
+            $chk_res = $stmt_chk->get_result();
+            if ($chk_res && $chk_res->num_rows > 0) {
+                $error = "Tên đăng nhập hoặc email đã tồn tại. Vui lòng chọn thông tin khác!";
+                $stmt_chk->close();
             } else {
-                $safe_pass = $conn->real_escape_string($reg_password);
-                $sql_ins = "INSERT INTO users (username, password, fullname, role) VALUES ('$reg_username', '$safe_pass', '$reg_fullname', 0)";
-                if ($conn->query($sql_ins) === TRUE) {
-                    $new_id = $conn->insert_id;
+                $stmt_chk->close();
+                $hashed = password_hash($reg_password, PASSWORD_BCRYPT);
+                $role = 'student';
+                $status = 'active';
+                $stmt_ins = $conn->prepare("INSERT INTO users (username, password, fullname, email, role, status) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt_ins->bind_param('ssssss', $reg_username, $hashed, $reg_fullname, $reg_email, $role, $status);
+                if ($stmt_ins->execute()) {
+                    $new_id = $stmt_ins->insert_id;
+                    $stmt_ins->close();
                     $_SESSION['user_id'] = $new_id;
                     $_SESSION['fullname'] = $reg_fullname;
                     $_SESSION['username'] = $reg_username;
-                    $_SESSION['role'] = 0; // Mặc định tài khoản học viên
-                    $success = "Tạo tài khoản thành công! Đang chuyển hướng về trang hồ sơ...";
+                    $_SESSION['role'] = 'student';
+                    $target = ($redirect !== '' && strpos($redirect, 'http') !== 0) ? $redirect : 'profile.php';
+                    header("Location: " . $target);
+                    exit();
                 } else {
                     $error = "Có lỗi xảy ra khi tạo tài khoản: " . $conn->error;
+                    $stmt_ins->close();
                 }
             }
         }
     } else {
-        // Đăng nhập
         $active_tab = "login";
-        $username = trim($conn->real_escape_string($_POST['username'] ?? ''));
-        $password = trim($_POST['password'] ?? '');
-        $sql = "SELECT * FROM users WHERE username = '$username' AND password = '$password'";
-        $result = $conn->query($sql);
+        $username = trim($_POST['username'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $stmt = $conn->prepare("SELECT id, username, password, fullname, role, status FROM users WHERE username = ? OR email = ? LIMIT 1");
+        $stmt->bind_param('ss', $username, $username);
+        $stmt->execute();
+        $result = $stmt->get_result();
         if ($result && $result->num_rows === 1) {
             $row = $result->fetch_assoc();
-            $_SESSION['user_id'] = $row['id'];
-            $_SESSION['fullname'] = $row['fullname'];
-            $_SESSION['username'] = $row['username'];
-            $_SESSION['role'] = (int)$row['role'];
-            if ($row['role'] == 1) {
-                header("Location: admin/index.php");
+            $stmt->close();
+
+            if (!password_verify($password, $row['password'])) {
+                $error = "Sai tên đăng nhập hoặc mật khẩu! Vui lòng thử lại.";
+            } elseif ($row['status'] !== 'active') {
+                $error = "Tài khoản của bạn hiện đang bị khóa. Vui lòng liên hệ quản trị viên!";
             } else {
-                header("Location: profile.php");
+                $_SESSION['user_id'] = (int)$row['id'];
+                $_SESSION['fullname'] = $row['fullname'];
+                $_SESSION['username'] = $row['username'];
+                $_SESSION['role'] = $row['role'];
+
+                if ($row['role'] === 'admin') {
+                    header("Location: admin/index.php");
+                } else {
+                    $target = ($redirect !== '' && strpos($redirect, 'http') !== 0) ? $redirect : 'profile.php';
+                    header("Location: " . $target);
+                }
+                exit();
             }
-            exit();
-        } 
-        else {
+        } else {
+            if ($stmt) $stmt->close();
             $error = "Sai tên đăng nhập hoặc mật khẩu! Vui lòng thử lại.";
         }
     }
@@ -226,6 +253,17 @@ require_once 'includes/menu.php';
                                     <i class="bi bi-at"></i>
                                 </span>
                                 <input type="text" name="reg_username" class="form-control" placeholder="Ví dụ: hocvien2026" required value="<?= htmlspecialchars($_POST['reg_username'] ?? '') ?>">
+                            </div>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="mb-2">
+                            <label class="form-label small fw-semibold text-dark mb-1">Email</label>
+                            <div class="input-group login-input-group">
+                                <span class="input-group-text ps-3">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input type="email" name="reg_email" class="form-control" placeholder="Ví dụ: hocvien@gmail.com" required value="<?= htmlspecialchars($_POST['reg_email'] ?? '') ?>">
                             </div>
                         </div>
 

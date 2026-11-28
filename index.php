@@ -1,20 +1,37 @@
 <?php
 require_once 'includes/header.php';
 require_once 'includes/menu.php';
-$where_sql = "";
-if ($search !== '') {
-    $safe_search = $conn->real_escape_string($search);
-    $where_sql = "WHERE title LIKE '%$safe_search%' OR description LIKE '%$safe_search%'";
-}
-$sql_courses = "SELECT * FROM courses $where_sql ORDER BY id DESC";
-$result_courses = $conn->query($sql_courses);
+
 $courses_list = [];
-if ($result_courses && $result_courses->num_rows > 0) {
-    while ($row = $result_courses->fetch_assoc()) {
-        $courses_list[] = $row;
+if ($search !== '') {
+    $like = '%' . $search . '%';
+    $stmt = $conn->prepare("SELECT c.*, cat.name AS category_name
+                            FROM courses c
+                            LEFT JOIN categories cat ON c.category_id = cat.id
+                            WHERE c.status = 'published' AND (c.title LIKE ? OR c.description LIKE ?)
+                            ORDER BY c.id DESC");
+    if ($stmt) {
+        $stmt->bind_param('ss', $like, $like);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        while ($row = $res->fetch_assoc()) {
+            $courses_list[] = $row;
+        }
+        $stmt->close();
+    }
+} else {
+    $sql_courses = "SELECT c.*, cat.name AS category_name
+                    FROM courses c
+                    LEFT JOIN categories cat ON c.category_id = cat.id
+                    WHERE c.status = 'published'
+                    ORDER BY c.id DESC";
+    $result_courses = $conn->query($sql_courses);
+    if ($result_courses && $result_courses->num_rows > 0) {
+        while ($row = $result_courses->fetch_assoc()) {
+            $courses_list[] = $row;
+        }
     }
 }
-$sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Trí tuệ nhân tạo', 'Ngoại ngữ', 'Thiết kế đồ họa'];
 ?>
 <div class="container pb-5">
     <?php
@@ -22,61 +39,135 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
         require_once 'includes/banner.php';
     }
     ?>
-    <?php if ($search === ''): ?>
-    <div id="flash-sale" class="flash-sale-box mt-5">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-            <div>
-                <div class="d-flex align-items-center gap-2">
-                    <h3 class="fw-bold text-danger mb-0"><i class="bi bi-lightning-charge-fill"></i> FLASH SALE Theo khung giờ</h3>
-                    <span class="badge bg-danger rounded-pill">Đang sale</span>
+    <?php if ($search === ''):
+        date_default_timezone_set('Asia/Ho_Chi_Minh');
+        // Xác định khung giờ Flash Sale hiện tại (09:00, 12:00, 15:00, 18:00, 21:00)
+        $fs_slots = [
+            ['hour' => 9,  'label' => '09:00'],
+            ['hour' => 12, 'label' => '12:00'],
+            ['hour' => 15, 'label' => '15:00'],
+            ['hour' => 18, 'label' => '18:00'],
+            ['hour' => 21, 'label' => '21:00'],
+        ];
+        $now_hour = (int)date('G');
+        $active_slot_hour = null;
+        foreach ($fs_slots as $s) {
+            if ($now_hour >= $s['hour'] && $now_hour < $s['hour'] + 3) {
+                $active_slot_hour = $s['hour'];
+                break;
+            }
+        }
+        $flash_discounts = [9, 8, 6, 10, 7, 7, 6, 10];
+    ?>
+    <section id="flash-sale" class="fs-section-wrap mt-5">
+        <!-- HEADER GRADIENT ĐỎ - CAM -->
+        <div class="fs-header-bar">
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-icon-box">
+                    <i class="bi bi-lightning-fill"></i>
                 </div>
-                <p class="text-secondary small mb-0 mt-1">Giảm thêm 5–10% · Áp giá ưu đãi trực tiếp khi đăng ký hôm nay</p>
+                <div>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <h3 class="fs-header-title mb-0">FLASH SALE</h3>
+                        <span class="fs-pill-tag">THEO KHUNG GIỜ</span>
+                    </div>
+                    <p class="fs-header-sub mb-0">Giảm thêm 5–10% · áp giá thật lúc thanh toán</p>
+                </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-                <span class="fw-semibold text-dark small">Kết thúc sau:</span>
-                <span class="timer-badge" id="countdown-timer">02:19:16</span>
+
+            <div class="d-flex align-items-center flex-wrap gap-2 mt-2 mt-md-0">
+                <span class="fs-countdown-label">KẾT THÚC SAU</span>
+                <div class="fs-timer-boxes" data-end-hour="<?= $active_slot_hour + 3 ?>">
+                    <span class="fs-timer-box" id="fsHours">01</span>
+                    <span class="fs-timer-sep">:</span>
+                    <span class="fs-timer-box" id="fsMinutes">27</span>
+                    <span class="fs-timer-sep">:</span>
+                    <span class="fs-timer-box" id="fsSeconds">25</span>
+                </div>
+                <span class="fs-status-pill" id="fsHeaderStatusPill">
+                    <span class="fs-status-dot"></span> ĐANG SALE
+                </span>
             </div>
         </div>
-        <div class="row g-3">
-            <?php 
-            $flash_courses = array_slice($courses_list, 0, 4);
-            if (!empty($flash_courses)):
-                foreach ($flash_courses as $idx => $course): 
-                    $tag = $sample_tags[$idx % count($sample_tags)];
-                    $img = !empty($course['image_url']) ? $course['image_url'] : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600';
-                    $course_url = "chitiet_khoahoc.php?id=" . $course['id'];
-                    $c_price = (float)($course['price'] > 0 ? $course['price'] : 149999);
-                    $c_flash = round($c_price * 0.95);
-                    $c_old = (float)($course['old_price'] > 0 ? $course['old_price'] : 1500000);
+
+        <!-- THANH 5 KHUNG GIỜ -->
+        <div class="fs-slots-bar">
+            <?php foreach ($fs_slots as $slot):
+                $s_hour = $slot['hour'];
+                if ($active_slot_hour === null) {
+                    $slot_state = ($now_hour < $s_hour) ? 'upcoming' : 'past';
+                } elseif ($s_hour < $active_slot_hour) {
+                    $slot_state = 'past';
+                } elseif ($s_hour === $active_slot_hour) {
+                    $slot_state = 'active';
+                } else {
+                    $slot_state = 'upcoming';
+                }
+                $slot_sub = $slot_state === 'active' ? 'ĐANG SALE' : ($slot_state === 'past' ? 'ĐÃ QUA' : 'SẮP MỞ');
             ?>
-            <div class="col-12 col-sm-6 col-lg-3">
-                <div class="course-card border-0 shadow-sm">
-                    <div class="course-img-wrap">
-                        <span class="discount-badge">-5% FLASH</span>
-                        <a href="<?= $course_url ?>">
-                            <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($course['title']) ?>">
-                        </a>
-                    </div>
-                    <div class="card-body d-flex flex-column p-3">
-                        <span class="text-primary fw-semibold small mb-1"><?= $tag ?></span>
-                        <a href="<?= $course_url ?>" class="course-title mb-2"><?= htmlspecialchars($course['title']) ?></a>
-                        <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="price-new"><?= number_format($c_flash, 0, ',', '.') ?> ₫</div>
-                                <div class="price-old"><?= number_format($c_old, 0, ',', '.') ?> ₫</div>
+            <button type="button"
+                    class="fs-slot-tab <?= $slot_state === 'active' ? 'is-active' : '' ?> state-<?= $slot_state ?>"
+                    data-slot-hour="<?= $s_hour ?>"
+                    data-slot-state="<?= $slot_state ?>"
+                    data-slot-label="<?= $slot['label'] ?>"
+                    <?= $slot_state !== 'active' ? 'disabled aria-disabled="true"' : '' ?>
+                    onclick="selectFlashSlot(this)">
+                <div class="fs-slot-time"><?= $slot['label'] ?></div>
+                <div class="fs-slot-status"><?= $slot_sub ?></div>
+            </button>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- LƯỚI KHÓA HỌC FLASH SALE (TỐI ĐA 8 KHÓA) -->
+        <div class="fs-cards-body">
+            <div class="row g-3">
+                <?php
+                $flash_courses = array_slice($courses_list, 0, 8);
+                if (!empty($flash_courses)):
+                    foreach ($flash_courses as $idx => $course):
+                        $tag = !empty($course['category_name']) ? $course['category_name'] : 'Khóa học';
+                        $img = !empty($course['image_url']) ? $course['image_url'] : 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600';
+                        $course_url = "chitiet_khoahoc.php?id=" . (int)$course['id'];
+                        $disc_pct = $flash_discounts[$idx % count($flash_discounts)];
+                        $c_price = (float)($course['price'] > 0 ? $course['price'] : 149999);
+                        $c_flash = round($c_price * (1 - $disc_pct / 100));
+                        $c_old = (float)($course['old_price'] > 0 ? $course['old_price'] : 1500000);
+                ?>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="fs-course-card">
+                        <div class="fs-card-img-wrap">
+                            <span class="fs-discount-pill">-<?= $disc_pct ?>%</span>
+                            <button type="button" class="fs-fav-btn" onclick="toggleFlashFav(this)" title="Yêu thích">
+                                <i class="bi bi-heart"></i>
+                            </button>
+                            <a href="<?= $course_url ?>" class="d-block h-100">
+                                <img src="<?= htmlspecialchars($img) ?>" alt="<?= htmlspecialchars($course['title']) ?>">
+                            </a>
+                        </div>
+                        <div class="fs-card-body">
+                            <div class="fs-card-cat"><?= htmlspecialchars(mb_strtoupper($tag, 'UTF-8')) ?></div>
+                            <a href="<?= $course_url ?>" class="fs-card-title"><?= htmlspecialchars($course['title']) ?></a>
+                            <div class="fs-card-price-row">
+                                <span class="fs-price-new"><?= number_format($c_flash, 0, ',', '.') ?> ₫</span>
+                                <span class="fs-price-old"><?= number_format($c_old, 0, ',', '.') ?> ₫</span>
                             </div>
-                            <a href="<?= $course_url ?>" class="btn btn-danger btn-sm fw-semibold px-3 rounded-pill">
-                                Mua giá Flash
+                            <a href="<?= $course_url ?>" class="fs-buy-btn">
+                                <span>Mua giá Flash</span>
+                                <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
                     </div>
                 </div>
+                <?php endforeach; else: ?>
+                    <div class="col-12 text-center py-4 text-muted">Chưa có khóa học nào trong cơ sở dữ liệu.</div>
+                <?php endif; ?>
             </div>
-            <?php endforeach; else: ?>
-                <div class="col-12 text-center py-3 text-muted">Chưa có khóa học nào trong cơ sở dữ liệu.</div>
-            <?php endif; ?>
+
+            <div class="fs-footer-note">
+                Giá Flash chỉ hiệu lực trong khung đang diễn ra và được tính lại lúc tạo đơn.
+            </div>
         </div>
-    </div>
+    </section>
     <?php endif; ?>
     <div id="khoa-hoc" class="mt-5 pt-2">
         <div class="d-flex justify-content-between align-items-end mb-4">
@@ -90,14 +181,14 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
             <?php if ($search !== ''): ?>
                 <a href="index.php" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
             <?php else: ?>
-                <a href="#khoa-hoc" class="btn btn-outline-primary btn-sm fw-semibold">Xem tất cả <i class="bi bi-arrow-down"></i></a>
+                <a href="danh_muc.php" class="btn btn-outline-primary btn-sm fw-semibold">Xem tất cả <i class="bi bi-arrow-right"></i></a>
             <?php endif; ?>
         </div>
 
         <div class="row g-4">
             <?php if (!empty($courses_list)): ?>
                 <?php foreach ($courses_list as $index => $row): 
-                    $tag = $sample_tags[$index % count($sample_tags)];
+                    $tag = !empty($row['category_name']) ? $row['category_name'] : 'Khóa học';
                     $img = !empty($row['image_url']) ? $row['image_url'] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600';
                     $row_url = "chitiet_khoahoc.php?id=" . $row['id'];
                     $r_price = (float)($row['price'] > 0 ? $row['price'] : 149999);
@@ -122,10 +213,10 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                                     <span class="price-new"><?= number_format($r_price, 0, ',', '.') ?> ₫</span>
                                     <span class="price-old"><?= number_format($r_old, 0, ',', '.') ?> ₫</span>
                                 </div>
-                                <div class="d-grid gap-2 d-flex">
-                                    <a href="<?= $row_url ?>" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">Xem chi tiết</a>
-                                    <a href="<?= $row_url ?>" class="btn btn-primary btn-sm fw-semibold"><i class="bi bi-cart-plus"></i> Học ngay</a>
-                                </div>
+                                <a href="<?= $row_url ?>" class="btn btn-primary w-100 fw-bold py-2 rounded-3 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem;">
+                                    <span>Xem chi tiết & Đặt mua</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -162,7 +253,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Giá khóa tối đa 50.000 ₫</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Học trọn đời các khóa đã nhận</li>
                     </ul>
-                    <a href="login.php" class="btn btn-outline-primary w-100 fw-semibold">Đăng ký gói Start</a>
+                    <button type="button" onclick="addMembershipToCart('start')" class="btn btn-outline-primary w-100 fw-semibold">Đăng ký gói Start</button>
                 </div>
             </div>
 
@@ -181,7 +272,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-primary me-2"></i>Cập nhật khóa học mới miễn phí</li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-primary me-2"></i>Hỗ trợ Zalo ưu tiên 24/7</li>
                     </ul>
-                    <a href="login.php" class="btn btn-primary w-100 fw-semibold">Nhận gói 599K ngay</a>
+                    <button type="button" onclick="addMembershipToCart('lifetime')" class="btn btn-primary w-100 fw-semibold">Nhận gói 599K ngay</button>
                 </div>
             </div>
 
@@ -199,7 +290,7 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Bao gồm danh mục <b>Combo Khóa Học</b></li>
                         <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Làm bài thi trắc nghiệm không giới hạn</li>
                     </ul>
-                    <a href="login.php" class="btn btn-outline-primary w-100 fw-semibold">Xem quyền lợi VIP</a>
+                    <button type="button" onclick="addMembershipToCart('vip')" class="btn btn-outline-primary w-100 fw-semibold">Đăng ký gói VIP</button>
                 </div>
             </div>
         </div>
@@ -207,6 +298,125 @@ $sample_tags = ['Công nghệ thông tin', 'Combo Khóa Học', 'Marketing', 'Tr
     <?php
     if ($search === '') {
         require_once 'includes/feedback_section.php';
+
+        // Chuẩn bị dữ liệu cho 3 section sau phần phản hồi
+        $combo_courses = array_values(array_filter($courses_list, function ($c) {
+            $haystack = mb_strtolower(($c['category'] ?? '') . ' ' . ($c['title'] ?? ''), 'UTF-8');
+            return strpos($haystack, 'combo') !== false || strpos($haystack, 'trọn bộ') !== false;
+        }));
+        if (count($combo_courses) < 8) {
+            $existing_ids = array_column($combo_courses, 'id');
+            foreach ($courses_list as $c) {
+                if (!in_array($c['id'], $existing_ids, true)) {
+                    $combo_courses[] = $c;
+                }
+                if (count($combo_courses) >= 8) break;
+            }
+        }
+
+        $ai_courses = array_values(array_filter($courses_list, function ($c) {
+            $haystack = mb_strtolower(($c['category'] ?? '') . ' ' . ($c['title'] ?? ''), 'UTF-8');
+            foreach (['ai', 'coding', 'lập trình', 'công nghệ', 'web', 'claude', 'python', 'javascript'] as $kw) {
+                if (strpos($haystack, $kw) !== false) return true;
+            }
+            return false;
+        }));
+        if (count($ai_courses) < 8) {
+            $existing_ids = array_column($ai_courses, 'id');
+            foreach ($courses_list as $c) {
+                if (!in_array($c['id'], $existing_ids, true)) {
+                    $ai_courses[] = $c;
+                }
+                if (count($ai_courses) >= 8) break;
+            }
+        }
+
+        $home_sections = [
+            [
+                'id'       => 'moi-cap-nhat',
+                'eyebrow'  => 'MỚI CẬP NHẬT',
+                'title'    => 'Khóa học mới dành cho bạn',
+                'subtitle' => 'Nội dung mới được bổ sung và cập nhật thường xuyên',
+                'link'     => 'danh_muc.php?sort=newest',
+                'items'    => array_slice($courses_list, 0, 8),
+            ],
+            [
+                'id'       => 'combo-gia-re',
+                'eyebrow'  => 'KHÁM PHÁ THEO CHỦ ĐỀ',
+                'title'    => 'Combo Khóa Học - Giá Siêu Rẻ',
+                'subtitle' => 'Giải pháp học tập toàn diện với mức giá tiết kiệm nhất',
+                'link'     => 'danh_muc.php?cat=' . urlencode('Combo Khóa Học'),
+                'items'    => array_slice($combo_courses, 0, 8),
+            ],
+            [
+                'id'       => 'vibe-ai-coding',
+                'eyebrow'  => 'KHÁM PHÁ THEO CHỦ ĐỀ',
+                'title'    => 'Vibe Coding & AI Coding',
+                'subtitle' => 'Học cách xây dựng Website, App, AI Agent và phần mềm thực tế bằng các công cụ AI hiện đại',
+                'link'     => 'danh_muc.php?cat=' . urlencode('Công nghệ thông tin'),
+                'items'    => array_slice($ai_courses, 0, 8),
+            ],
+        ];
+
+        foreach ($home_sections as $sec):
+    ?>
+    <section id="<?= $sec['id'] ?>" class="home-curated-section mt-5 pt-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+            <div>
+                <div class="home-curated-eyebrow">
+                    <span class="eyebrow-dash"></span><?= htmlspecialchars($sec['eyebrow']) ?>
+                </div>
+                <h3 class="home-curated-title mb-1"><?= htmlspecialchars($sec['title']) ?></h3>
+                <p class="text-muted small mb-0"><?= htmlspecialchars($sec['subtitle']) ?></p>
+            </div>
+            <a href="<?= $sec['link'] ?>" class="home-curated-seeall">
+                Xem tất cả <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+
+        <div class="row g-3">
+            <?php if (!empty($sec['items'])): ?>
+                <?php foreach ($sec['items'] as $idx => $item):
+                    $c_id    = (int)$item['id'];
+                    $c_cat   = !empty($item['category_name']) ? $item['category_name'] : (!empty($item['category']) ? $item['category'] : 'Khóa học');
+                    $c_img   = !empty($item['image_url']) ? $item['image_url'] : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600';
+                    $c_price = (float)($item['price'] > 0 ? $item['price'] : 149999);
+                    $c_old   = (float)($item['old_price'] > 0 ? $item['old_price'] : 2500000);
+                    $c_url   = 'chitiet_khoahoc.php?id=' . $c_id;
+                ?>
+                <div class="col-12 col-sm-6 col-lg-3">
+                    <div class="catalog-course-card">
+                        <a href="<?= $c_url ?>" class="catalog-card-thumb">
+                            <img src="<?= htmlspecialchars($c_img) ?>" alt="<?= htmlspecialchars($item['title']) ?>">
+                        </a>
+                        <div class="catalog-card-body">
+                            <div class="catalog-card-cat"><?= htmlspecialchars(mb_strtoupper($c_cat, 'UTF-8')) ?></div>
+                            <a href="<?= $c_url ?>" class="catalog-card-title"><?= htmlspecialchars($item['title']) ?></a>
+
+                            <div class="catalog-card-prices">
+                                <span class="catalog-price-new"><?= number_format($c_price, 0, ',', '.') ?> ₫</span>
+                                <?php if ($c_old > $c_price): ?>
+                                    <span class="catalog-price-old"><?= number_format($c_old, 0, ',', '.') ?> ₫</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <a href="<?= $c_url ?>" class="catalog-detail-link">Xem chi tiết →</a>
+
+                            <button type="button" class="btn btn-primary w-100 fw-bold py-2 rounded-3 d-flex align-items-center justify-content-center gap-2" style="font-size: 0.84rem;" onclick="addCourseToCart(<?= $c_id ?>)">
+                                <i class="bi bi-cart3"></i>
+                                <span>Thêm vào giỏ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="col-12 text-center py-4 text-muted small">Chưa có khóa học nào trong mục này.</div>
+            <?php endif; ?>
+        </div>
+    </section>
+    <?php
+        endforeach;
     }
     ?>
 <?php

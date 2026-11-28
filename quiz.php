@@ -2,57 +2,79 @@
 require_once 'config.php';
 
 // Yêu cầu đăng nhập
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
-    exit();
-}
+require_login('login.php');
 
-$user_id  = (int)$_SESSION['user_id'];
-$exam_id  = (int)($_GET['exam_id']  ?? 0);
-$course_id= (int)($_GET['course_id'] ?? 0);
-$result_id= (int)($_GET['result_id'] ?? 0);
+$user_id    = current_user_id();
+$exam_id    = (int)($_GET['quiz_id'] ?? $_GET['exam_id'] ?? 0);
+$course_id  = (int)($_GET['course_id'] ?? 0);
+$result_id  = (int)($_GET['attempt_id'] ?? $_GET['result_id'] ?? 0);
 
 if ($exam_id <= 0) {
     header("Location: index.php");
     exit();
 }
 
-// ===== LẤY THÔNG TIN ĐỀ THI =====
-$exam_res = $conn->query("SELECT e.*, c.title as course_title 
-    FROM exams e 
-    LEFT JOIN courses c ON c.id = e.course_id 
-    WHERE e.id = $exam_id AND e.is_active = 1");
-if (!$exam_res || $exam_res->num_rows === 0) {
-    die("<div class='text-center p-5'>Đề thi không tồn tại hoặc đã bị ẩn.</div>");
+// ===== LẤY THÔNG TIN BÀI KIỂM TRA =====
+$stmt_qz = $conn->prepare("SELECT q.*, c.title AS course_title, s.title AS section_title
+    FROM quizzes q
+    LEFT JOIN courses c ON c.id = q.course_id
+    LEFT JOIN sections s ON s.id = q.section_id
+    WHERE q.id = ? AND q.status = 'published' LIMIT 1");
+$stmt_qz->bind_param('i', $exam_id);
+$stmt_qz->execute();
+$exam = $stmt_qz->get_result()->fetch_assoc();
+$stmt_qz->close();
+
+if (!$exam) {
+    die("<div class='text-center p-5'>Bài kiểm tra không tồn tại hoặc chưa được công khai.</div>");
 }
-$exam = $exam_res->fetch_assoc();
 if ($course_id <= 0) $course_id = (int)$exam['course_id'];
+
+// Quy tắc 2 & 4: Chỉ học viên đã được cấp quyền học khóa học mới được làm bài kiểm tra
+if (!is_admin() && !has_course_access($conn, $user_id, $course_id)) {
+    set_flash('Bạn chưa có quyền truy cập bài kiểm tra của khóa học này.', 'warning');
+    header("Location: chitiet_khoahoc.php?id=" . $course_id);
+    exit();
+}
 
 // ===== ĐÃ CÓ KẾT QUẢ → TRANG XEM KẾT QUẢ =====
 if ($result_id > 0) {
-    $rr = $conn->query("SELECT er.*, u.fullname FROM exam_results er 
-        LEFT JOIN users u ON u.id = er.user_id 
-        WHERE er.id = $result_id AND er.user_id = $user_id AND er.exam_id = $exam_id");
-    if (!$rr || $rr->num_rows === 0) {
-        header("Location: quiz.php?exam_id=$exam_id&course_id=$course_id");
+    $stmt_rr = $conn->prepare("SELECT qa.*, u.fullname FROM quiz_attempts qa
+        LEFT JOIN users u ON u.id = qa.user_id
+        WHERE qa.id = ? AND qa.user_id = ? AND qa.quiz_id = ? LIMIT 1");
+    $stmt_rr->bind_param('iii', $result_id, $user_id, $exam_id);
+    $stmt_rr->execute();
+    $result = $stmt_rr->get_result()->fetch_assoc();
+    $stmt_rr->close();
+
+    if (!$result) {
+        header("Location: quiz.php?quiz_id=$exam_id&course_id=$course_id");
         exit();
     }
-    $result = $rr->fetch_assoc();
+    // Tương thích biến giao diện cũ
+    $result['correct_answers'] = $result['correct_count'];
+    $result['time_taken_seconds'] = (!empty($result['submitted_at']) && !empty($result['started_at']))
+        ? max(0, strtotime($result['submitted_at']) - strtotime($result['started_at'])) : 0;
 
-    // Lấy chi tiết từng câu trả lời
-    $answers_res = $conn->query("SELECT ea.*, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer, q.explanation
-        FROM exam_answers ea
-        JOIN questions q ON q.id = ea.question_id
-        WHERE ea.result_id = $result_id
-        ORDER BY ea.id ASC");
+    // Lấy chi tiết từng câu trả lời từ quiz_answers
     $detail_answers = [];
-    if ($answers_res) {
-        while ($a = $answers_res->fetch_assoc()) $detail_answers[] = $a;
-    }
+    $stmt_ans = $conn->prepare("SELECT ans.*, ans.selected_answer AS user_answer, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer, q.explanation
+        FROM quiz_answers ans
+        JOIN questions q ON q.id = ans.question_id
+        WHERE ans.attempt_id = ?
+        ORDER BY ans.id ASC");
+    $stmt_ans->bind_param('i', $result_id);
+    $stmt_ans->execute();
+    $answers_res = $stmt_ans->get_result();
+    while ($a = $answers_res->fetch_assoc()) $detail_answers[] = $a;
+    $stmt_ans->close();
 
     // Đếm số lần thi
-    $attempt_res = $conn->query("SELECT COUNT(*) as cnt FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id");
-    $attempts_used = $attempt_res ? (int)$attempt_res->fetch_assoc()['cnt'] : 1;
+    $stmt_att = $conn->prepare("SELECT COUNT(*) AS cnt FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?");
+    $stmt_att->bind_param('ii', $user_id, $exam_id);
+    $stmt_att->execute();
+    $attempts_used = (int)($stmt_att->get_result()->fetch_assoc()['cnt'] ?? 1);
+    $stmt_att->close();
     $attempts_left = max(0, (int)$exam['max_attempts'] - $attempts_used);
 
     $mode = 'result';
@@ -60,31 +82,33 @@ if ($result_id > 0) {
 // ===== XỬ LÝ NỘP BÀI =====
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_exam'])) {
 
-    $posted_exam_id  = (int)($_POST['exam_id']  ?? 0);
-    $posted_course_id= (int)($_POST['course_id'] ?? 0);
-    $start_time      = (int)($_POST['start_time'] ?? time());
+    $posted_exam_id   = (int)($_POST['exam_id']  ?? 0);
+    $start_time       = (int)($_POST['start_time'] ?? time());
 
     if ($posted_exam_id !== $exam_id) die("Dữ liệu không hợp lệ.");
 
     // Kiểm tra số lần thi
-    $att_res = $conn->query("SELECT COUNT(*) as cnt FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id");
-    $attempts_used_now = $att_res ? (int)$att_res->fetch_assoc()['cnt'] : 0;
+    $stmt_att = $conn->prepare("SELECT COUNT(*) AS cnt FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?");
+    $stmt_att->bind_param('ii', $user_id, $exam_id);
+    $stmt_att->execute();
+    $attempts_used_now = (int)($stmt_att->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $stmt_att->close();
+
     if ($attempts_used_now >= (int)$exam['max_attempts']) {
-        header("Location: quiz.php?exam_id=$exam_id&course_id=$course_id&err=max_attempts");
+        header("Location: quiz.php?quiz_id=$exam_id&course_id=$course_id&err=max_attempts");
         exit();
     }
 
-    // Lấy câu hỏi để chấm
-    $q_res = $conn->query("SELECT q.id as question_id, q.correct_answer 
-        FROM exam_questions eq 
-        JOIN questions q ON q.id = eq.question_id 
-        WHERE eq.exam_id = $exam_id");
+    // Lấy câu hỏi của quiz để tự động chấm điểm
     $questions_to_grade = [];
-    if ($q_res) {
-        while ($qr = $q_res->fetch_assoc()) {
-            $questions_to_grade[$qr['question_id']] = strtoupper($qr['correct_answer']);
-        }
+    $stmt_qg = $conn->prepare("SELECT id, correct_answer FROM questions WHERE quiz_id = ? ORDER BY sort_order ASC, id ASC");
+    $stmt_qg->bind_param('i', $exam_id);
+    $stmt_qg->execute();
+    $q_res = $stmt_qg->get_result();
+    while ($qr = $q_res->fetch_assoc()) {
+        $questions_to_grade[(int)$qr['id']] = strtoupper($qr['correct_answer']);
     }
+    $stmt_qg->close();
 
     $total_q   = count($questions_to_grade);
     $correct_n = 0;
@@ -94,34 +118,39 @@ if ($result_id > 0) {
         if ($user_ans === $correct_ans) $correct_n++;
     }
 
-    $score         = $total_q > 0 ? round(($correct_n / $total_q) * 100) : 0;
-    $passed        = $score >= (int)$exam['pass_score'] ? 1 : 0;
-    $time_taken    = max(0, time() - $start_time);
-    $safe_fullname = $conn->real_escape_string($_SESSION['fullname'] ?? '');
+    $score  = $total_q > 0 ? round(($correct_n / $total_q) * 100, 2) : 0;
+    $passed = $score >= (int)$exam['pass_score'] ? 1 : 0;
+    $started_str = date('Y-m-d H:i:s', $start_time);
 
-    // Lưu kết quả
-    $conn->query("INSERT INTO exam_results (exam_id, user_id, score, total_questions, correct_answers, time_taken_seconds, passed) 
-        VALUES ($exam_id, $user_id, $score, $total_q, $correct_n, $time_taken, $passed)");
-    $new_result_id = (int)$conn->insert_id;
+    // Lưu lần làm bài vào quiz_attempts
+    $stmt_ins = $conn->prepare("INSERT INTO quiz_attempts (quiz_id, user_id, score, correct_count, total_questions, passed, status, started_at, submitted_at)
+        VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, NOW())");
+    $stmt_ins->bind_param('iidiiis', $exam_id, $user_id, $score, $correct_n, $total_q, $passed, $started_str);
+    $stmt_ins->execute();
+    $new_result_id = (int)$stmt_ins->insert_id;
+    $stmt_ins->close();
 
-    // Lưu từng câu trả lời
+    // Lưu từng câu trả lời vào quiz_answers
+    $stmt_qa = $conn->prepare("INSERT INTO quiz_answers (attempt_id, question_id, selected_answer, is_correct) VALUES (?, ?, ?, ?)");
     foreach ($questions_to_grade as $qid => $correct_ans) {
-        $user_ans  = strtoupper(trim($_POST['answer_' . $qid] ?? ''));
-        $is_correct= ($user_ans === $correct_ans) ? 1 : 0;
-        $safe_ans  = $conn->real_escape_string($user_ans);
-        $conn->query("INSERT INTO exam_answers (result_id, question_id, user_answer, is_correct) 
-            VALUES ($new_result_id, $qid, '$safe_ans', $is_correct)");
+        $raw_ans = strtoupper(trim($_POST['answer_' . $qid] ?? ''));
+        $sel_ans = in_array($raw_ans, ['A', 'B', 'C', 'D'], true) ? $raw_ans : null;
+        $is_correct = ($sel_ans === $correct_ans) ? 1 : 0;
+        $stmt_qa->bind_param('iisi', $new_result_id, $qid, $sel_ans, $is_correct);
+        $stmt_qa->execute();
     }
+    $stmt_qa->close();
 
-    header("Location: quiz.php?exam_id=$exam_id&course_id=$course_id&result_id=$new_result_id");
+    header("Location: quiz.php?quiz_id=$exam_id&course_id=$course_id&attempt_id=$new_result_id");
     exit();
 
 // ===== TRANG GIỚI THIỆU / DANH SÁCH CÂU HỎI =====
 } else {
-
-    // Kiểm tra số lần thi
-    $att_res = $conn->query("SELECT COUNT(*) as cnt FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id");
-    $attempts_used = $att_res ? (int)$att_res->fetch_assoc()['cnt'] : 0;
+    $stmt_att = $conn->prepare("SELECT COUNT(*) AS cnt FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?");
+    $stmt_att->bind_param('ii', $user_id, $exam_id);
+    $stmt_att->execute();
+    $attempts_used = (int)($stmt_att->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $stmt_att->close();
     $attempts_left = max(0, (int)$exam['max_attempts'] - $attempts_used);
 
     $mode = isset($_GET['start']) ? 'quiz' : 'intro';
@@ -131,18 +160,13 @@ if ($result_id > 0) {
     }
 
     if ($mode === 'quiz') {
-        // Lấy câu hỏi
-        $q_res = $conn->query("SELECT q.*, eq.sort_order 
-            FROM exam_questions eq 
-            JOIN questions q ON q.id = eq.question_id 
-            WHERE eq.exam_id = $exam_id 
-            ORDER BY eq.sort_order ASC");
         $questions = [];
-        if ($q_res) {
-            while ($qr = $q_res->fetch_assoc()) $questions[] = $qr;
-        }
-        // Xáo trộn nếu cài đặt bật
-        if ((int)$exam['shuffle_questions'] === 1) shuffle($questions);
+        $stmt_ql = $conn->prepare("SELECT * FROM questions WHERE quiz_id = ? ORDER BY sort_order ASC, id ASC");
+        $stmt_ql->bind_param('i', $exam_id);
+        $stmt_ql->execute();
+        $q_res = $stmt_ql->get_result();
+        while ($qr = $q_res->fetch_assoc()) $questions[] = $qr;
+        $stmt_ql->close();
     }
 }
 
@@ -150,10 +174,12 @@ $page_title = htmlspecialchars($exam['title']);
 $option_labels = ['A', 'B', 'C', 'D'];
 $option_keys   = ['option_a', 'option_b', 'option_c', 'option_d'];
 
-function fmt_time($seconds) {
-    $m = floor($seconds / 60);
-    $s = $seconds % 60;
-    return sprintf('%02d:%02d', $m, $s);
+if (!function_exists('fmt_time')) {
+    function fmt_time($seconds) {
+        $m = floor($seconds / 60);
+        $s = $seconds % 60;
+        return sprintf('%02d:%02d', $m, $s);
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -162,6 +188,7 @@ function fmt_time($seconds) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $page_title ?> – EduNova</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg?v=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <style>
@@ -355,6 +382,10 @@ body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe 
     <div class="intro-card">
         <div class="d-flex align-items-center gap-2 mb-3">
             <a href="hoc.php?course_id=<?= $course_id ?>" class="btn-back"><i class="bi bi-arrow-left"></i> Quay lại khóa học</a>
+            <?php if (!empty($exam['section_title'])): ?>
+                <span class="text-muted small">/</span>
+                <span class="badge bg-primary text-white"><i class="bi bi-folder2 text-warning me-1"></i><?= htmlspecialchars($exam['section_title']) ?></span>
+            <?php endif; ?>
         </div>
         <h1><?= htmlspecialchars($exam['title']) ?></h1>
         <p class="sub"><?= htmlspecialchars($exam['description'] ?? '') ?></p>
@@ -372,8 +403,12 @@ body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe 
                 <div>
                     <div class="label">Số câu hỏi</div>
                     <?php
-                    $cnt_res = $conn->query("SELECT COUNT(*) as cnt FROM exam_questions WHERE exam_id = $exam_id");
+                    $stmt_cnt = $conn->prepare("SELECT COUNT(*) as cnt FROM questions WHERE quiz_id = ?");
+                    $stmt_cnt->bind_param('i', $exam_id);
+                    $stmt_cnt->execute();
+                    $cnt_res = $stmt_cnt->get_result();
                     $q_count = $cnt_res ? (int)$cnt_res->fetch_assoc()['cnt'] : 0;
+                    $stmt_cnt->close();
                     ?>
                     <div class="val"><?= $q_count ?> câu</div>
                 </div>
@@ -406,11 +441,14 @@ body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe 
             <?php endif; ?>
             <?php if ($attempts_used > 0): ?>
             <?php
-            $last_res = $conn->query("SELECT id FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id ORDER BY id DESC LIMIT 1");
-            $last_result = $last_res ? $last_res->fetch_assoc() : null;
+            $stmt_last = $conn->prepare("SELECT id FROM quiz_attempts WHERE user_id = ? AND quiz_id = ? ORDER BY id DESC LIMIT 1");
+            $stmt_last->bind_param('ii', $user_id, $exam_id);
+            $stmt_last->execute();
+            $last_result = $stmt_last->get_result()->fetch_assoc();
+            $stmt_last->close();
             ?>
             <?php if ($last_result): ?>
-            <a href="quiz.php?exam_id=<?= $exam_id ?>&course_id=<?= $course_id ?>&result_id=<?= $last_result['id'] ?>" class="btn-back">
+            <a href="quiz.php?quiz_id=<?= $exam_id ?>&course_id=<?= $course_id ?>&attempt_id=<?= $last_result['id'] ?>" class="btn-back">
                 <i class="bi bi-clock-history"></i> Xem lần thi trước
             </a>
             <?php endif; ?>
@@ -434,12 +472,15 @@ body { background: var(--bg-dark); color: var(--text-main); font-family: 'Segoe 
         <h2 class="mt-3">Hết lượt thi</h2>
         <p class="text-muted mt-2">Bạn đã sử dụng hết <?= (int)$exam['max_attempts'] ?> lượt thi cho đề này.</p>
         <?php
-        $last_res2 = $conn->query("SELECT id FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id ORDER BY id DESC LIMIT 1");
-        $last_r2 = $last_res2 ? $last_res2->fetch_assoc() : null;
+        $stmt_last2 = $conn->prepare("SELECT id FROM quiz_attempts WHERE user_id = ? AND quiz_id = ? ORDER BY id DESC LIMIT 1");
+        $stmt_last2->bind_param('ii', $user_id, $exam_id);
+        $stmt_last2->execute();
+        $last_r2 = $stmt_last2->get_result()->fetch_assoc();
+        $stmt_last2->close();
         ?>
         <div class="action-row">
             <?php if ($last_r2): ?>
-            <a href="quiz.php?exam_id=<?= $exam_id ?>&course_id=<?= $course_id ?>&result_id=<?= $last_r2['id'] ?>" class="btn-action btn-outline2">
+            <a href="quiz.php?quiz_id=<?= $exam_id ?>&course_id=<?= $course_id ?>&attempt_id=<?= $last_r2['id'] ?>" class="btn-action btn-outline2">
                 <i class="bi bi-clipboard-data"></i> Xem kết quả
             </a>
             <?php endif; ?>

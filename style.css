@@ -17,12 +17,20 @@ body {
     color: #fff;
     font-size: 0.875rem;
     padding: 8px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1021;
 }
 
 /* Thanh điều hướng chính */
 .main-navbar {
     background: #ffffff;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.main-navbar.sticky-top {
+    top: 37px;
+    z-index: 1020;
 }
 
 /* Logo thương hiệu EduNova */
@@ -139,6 +147,10 @@ body {
     border-top: 1px solid #f1f5f9;
     border-bottom: 1px solid #e2e8f0;
     font-size: 0.9rem;
+    position: sticky;
+    top: 113px;
+    z-index: 1019;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
 }
 
 .sub-navbar .nav-link {
@@ -2018,3 +2030,1327 @@ footer {
 }
 
 
+
+/* --------------------------------------------------------------------------
+   GIỎ HÀNG & THANH TOÁN (GIO_HANG.PHP)
+   -------------------------------------------------------------------------- */
+.cart-steps-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 20px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.cart-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.cart-step .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.cart-step.active {
+    color: #2563eb;
+}
+
+.cart-step.active .step-num {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(37, 99, 235, 0.3);
+}
+
+.cart-step.done {
+    color: #16a34a;
+}
+
+.cart-step.done .step-num {
+    background: #16a34a;
+    color: #ffffff;
+}
+
+.cart-step-line {
+    flex: 1;
+    max-width: 72px;
+    height: 2px;
+    background: #e2e8f0;
+}
+
+.cart-list-card,
+.cart-empty-card,
+.cart-summary-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.cart-list-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+    border-radius: 16px 16px 0 0;
+}
+
+.cart-item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s ease;
+}
+
+.cart-item-row:last-child {
+    border-bottom: none;
+}
+
+.cart-item-row:hover {
+    background: #f8fafc;
+}
+
+.cart-item-check {
+    padding-top: 6px;
+}
+
+.cart-item-thumb {
+    position: relative;
+    width: 120px;
+    height: 76px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid #e2e8f0;
+    display: block;
+}
+
+.cart-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cart-item-badge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    color: #ffffff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.3px;
+}
+
+.cart-item-cat {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #2563eb;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.cart-item-title a {
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.96rem;
+    line-height: 1.35;
+}
+
+.cart-item-title a:hover {
+    color: #2563eb;
+}
+
+.cart-item-price {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #dc2626;
+}
+
+.cart-item-old-price {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.cart-item-perks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.cart-empty-icon {
+    width: 78px;
+    height: 78px;
+    margin: 0 auto;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+}
+
+.cart-summary-card {
+    padding: 22px;
+}
+
+.coupon-chip {
+    background: #f1f5f9;
+    border: 1px dashed #cbd5e1;
+    color: #334155;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.coupon-chip:hover {
+    background: #eff6ff;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.payment-method-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.payment-method-option:has(input:checked) {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.cart-suggest-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.cart-suggest-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.suggest-thumb {
+    width: 96px;
+    height: 72px;
+    border-radius: 10px;
+    overflow: hidden;
+    display: block;
+}
+
+.suggest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.suggest-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.suggest-title:hover {
+    color: #2563eb;
+}
+
+@media (max-width: 576px) {
+    .cart-item-row {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .cart-item-thumb {
+        width: 96px;
+        height: 64px;
+    }
+    .cart-steps-bar {
+        padding: 10px 12px;
+        gap: 6px;
+    }
+    .cart-step .step-text {
+        font-size: 0.76rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   FLASH SALE THEO KHUNG GIỜ (CHUẨN GIAO DIỆN MẪU)
+   -------------------------------------------------------------------------- */
+.fs-section-wrap {
+    border: 1.5px solid #fecdd3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #fff7f7;
+    box-shadow: 0 8px 24px rgba(225, 29, 72, 0.06);
+}
+
+.fs-header-bar {
+    background: linear-gradient(90deg, #e11d48 0%, #ef4444 48%, #f97316 100%);
+    padding: 14px 22px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.fs-icon-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.fs-header-title {
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1.25rem;
+    letter-spacing: 0.4px;
+}
+
+.fs-pill-tag {
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.5px;
+}
+
+.fs-header-sub {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.78rem;
+    margin-top: 2px;
+}
+
+.fs-countdown-label {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.fs-timer-boxes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.fs-timer-box {
+    background: #ffffff;
+    color: #1e293b;
+    font-weight: 800;
+    font-size: 0.95rem;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-timer-sep {
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.fs-status-pill {
+    background: #ffffff;
+    color: #e11d48;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.fs-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    display: inline-block;
+}
+
+.fs-slots-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fs-slot-tab {
+    border: none;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 3px solid transparent;
+    background: #f8fafc;
+    padding: 11px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.fs-slot-tab:last-child {
+    border-right: none;
+}
+
+.fs-slot-time {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #64748b;
+    line-height: 1.2;
+}
+
+.fs-slot-status {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.4px;
+    margin-top: 2px;
+}
+
+.fs-slot-tab.is-active {
+    background: #ffffff;
+    border-bottom-color: #f97316;
+}
+
+.fs-slot-tab.is-active .fs-slot-time,
+.fs-slot-tab.is-active .fs-slot-status {
+    color: #ea580c;
+}
+
+.fs-slot-tab:hover:not(.is-active):not(:disabled) {
+    background: #f1f5f9;
+}
+
+.fs-slot-tab.state-past,
+.fs-slot-tab.state-upcoming,
+.fs-slot-tab:disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.72;
+}
+
+.fs-cards-body {
+    padding: 20px;
+}
+
+.fs-course-card {
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    border-radius: 14px;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.fs-course-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.09);
+}
+
+.fs-card-img-wrap {
+    position: relative;
+    height: 148px;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+
+.fs-card-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.fs-course-card:hover .fs-card-img-wrap img {
+    transform: scale(1.04);
+}
+
+.fs-discount-pill {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #e11d48;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 999px;
+    z-index: 2;
+    box-shadow: 0 2px 6px rgba(225, 29, 72, 0.35);
+}
+
+.fs-fav-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    border: none;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    z-index: 2;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    transition: all 0.15s ease;
+}
+
+.fs-fav-btn:hover,
+.fs-fav-btn.is-liked {
+    color: #e11d48;
+    background: #ffffff;
+}
+
+.fs-card-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.fs-card-cat {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #a16207;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fs-card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+    line-height: 1.38;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.42em;
+    margin-bottom: 10px;
+}
+
+.fs-card-title:hover {
+    color: #e11d48;
+}
+
+.fs-card-price-row {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+    margin-bottom: 10px;
+}
+
+.fs-price-new {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #e11d48;
+}
+
+.fs-price-old {
+    font-size: 0.76rem;
+    color: #94a3b8;
+    text-decoration: line-through;
+}
+
+.fs-buy-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    background: #e11d48;
+    color: #ffffff !important;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.18s ease, transform 0.15s ease;
+}
+
+.fs-buy-btn:hover {
+    background: #be123c;
+}
+
+.fs-buy-btn.is-disabled {
+    background: #94a3b8;
+}
+
+.fs-buy-btn.is-disabled:hover {
+    background: #64748b;
+}
+
+.fs-footer-note {
+    margin-top: 14px;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+@media (max-width: 576px) {
+    .fs-slots-bar {
+        overflow-x: auto;
+        grid-template-columns: repeat(5, minmax(76px, 1fr));
+    }
+    .fs-cards-body {
+        padding: 14px;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   TRANG DANH MỤC KHÓA HỌC (DANH_MUC.PHP)
+   -------------------------------------------------------------------------- */
+.catalog-page {
+    background-color: #faf8f5;
+}
+
+.catalog-page-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #1c1917;
+    letter-spacing: -0.3px;
+}
+
+.catalog-guarantee-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    background: #fef9ef;
+    border: 1px solid #f1e4cc;
+    border-radius: 12px;
+    padding: 12px 18px;
+}
+
+.cg-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #44403c;
+}
+
+.cg-item i {
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.catalog-sidebar {
+    background: #ffffff;
+    border: 1px solid #ece7df;
+    border-radius: 14px;
+    padding: 18px 16px;
+    box-shadow: 0 2px 10px rgba(28, 25, 23, 0.03);
+}
+
+.sidebar-filter-group {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #f1ede6;
+}
+
+.sidebar-group-title {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #44403c;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.sidebar-group-sub {
+    font-size: 0.74rem;
+    color: #78716c;
+    line-height: 1.35;
+}
+
+.sidebar-cat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.sidebar-cat-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    color: #44403c;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.sidebar-cat-item:hover {
+    background: #faf6ee;
+    color: #92400e;
+}
+
+.sidebar-cat-item.is-active {
+    background: #f5ebd6;
+    color: #78350f;
+    font-weight: 700;
+}
+
+.sidebar-cat-count {
+    font-size: 0.75rem;
+    color: #78716c;
+    flex-shrink: 0;
+}
+
+.sidebar-instructor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebar-instructor-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #44403c;
+    font-size: 0.83rem;
+    transition: background 0.15s ease;
+}
+
+.sidebar-instructor-item:hover {
+    background: #faf6ee;
+}
+
+.inst-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.catalog-sort-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: #ffffff;
+    border: 1px solid #ece7df;
+    border-radius: 12px;
+    padding: 10px 14px;
+}
+
+.sort-pill {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.83rem;
+    font-weight: 600;
+    color: #57534e;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.sort-pill:hover {
+    background: #faf6ee;
+    color: #1c1917;
+}
+
+.sort-pill.is-active {
+    background: #ffffff;
+    color: #1c1917;
+    border: 1px solid #d6cfc2;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.catalog-course-card {
+    background: #ffffff;
+    border: 1px solid #ece7df;
+    border-radius: 14px;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(28, 25, 23, 0.08);
+}
+
+.catalog-card-thumb {
+    display: block;
+    height: 158px;
+    overflow: hidden;
+    background: #f5f5f4;
+}
+
+.catalog-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.catalog-course-card:hover .catalog-card-thumb img {
+    transform: scale(1.04);
+}
+
+.catalog-card-body {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.catalog-card-cat {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #b45309;
+    letter-spacing: 0.4px;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.catalog-card-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1c1917;
+    text-decoration: none;
+    line-height: 1.38;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.48em;
+    margin-bottom: 10px;
+}
+
+.catalog-card-title:hover {
+    color: #b45309;
+}
+
+.catalog-card-prices {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    margin-bottom: 10px;
+}
+
+.catalog-price-new {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #b45309;
+}
+
+.catalog-price-old {
+    font-size: 0.78rem;
+    color: #a8a29e;
+    text-decoration: line-through;
+}
+
+.catalog-detail-link {
+    display: block;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #57534e;
+    text-decoration: none;
+    margin-bottom: 8px;
+}
+
+.catalog-detail-link:hover {
+    color: #1c1917;
+}
+
+.catalog-add-cart-btn {
+    width: 100%;
+    background: #27272a;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: background 0.18s ease;
+}
+
+.catalog-add-cart-btn:hover {
+    background: #18181b;
+}
+
+.catalog-pagination .page-link {
+    border-radius: 8px;
+    margin: 0 3px;
+    color: #44403c;
+    border-color: #e7e5e4;
+    font-weight: 600;
+    font-size: 0.86rem;
+}
+
+.catalog-pagination .page-item.active .page-link {
+    background-color: #d97706;
+    border-color: #d97706;
+    color: #ffffff;
+}
+
+@media (max-width: 991px) {
+    .catalog-guarantee-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .catalog-guarantee-strip {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   TRANG HƯỚNG DẪN MUA KHÓA HỌC (HUONG_DAN_MUA.PHP)
+   -------------------------------------------------------------------------- */
+.guide-hero-section {
+    background: #ffffff;
+}
+
+.guide-beige-section {
+    background: #f7f5f0;
+    border-top: 1px solid #ece7df;
+    border-bottom: 1px solid #ece7df;
+}
+
+.guide-eyebrow {
+    display: flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #78716c;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.guide-hero-title {
+    font-size: 2.35rem;
+    font-weight: 800;
+    color: #1c1917;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+}
+
+.text-guide-gold {
+    color: #c2851d;
+}
+
+.guide-section-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1c1917;
+    letter-spacing: -0.3px;
+}
+
+.btn-guide-gold {
+    background: #d4942a;
+    color: #1c1917 !important;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    transition: background 0.18s ease, transform 0.15s ease;
+}
+
+.btn-guide-gold:hover {
+    background: #c0821d;
+    transform: translateY(-1px);
+}
+
+.btn-guide-outline {
+    background: #ffffff;
+    color: #1c1917 !important;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid #e2ddd3;
+}
+
+.btn-guide-outline:hover {
+    background: #faf8f5;
+}
+
+.btn-guide-dark-outline {
+    background: transparent;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-guide-dark-outline:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.guide-stats-box {
+    border-left: 2px solid #ece7df;
+    padding-left: 24px;
+}
+
+.guide-stat-item {
+    margin-bottom: 18px;
+}
+
+.guide-stat-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1c1917;
+}
+
+.guide-stat-label {
+    font-size: 0.78rem;
+    color: #78716c;
+}
+
+.guide-video-frame {
+    max-width: 760px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 6px solid #1c1917;
+    background: #0f172a;
+    box-shadow: 0 20px 44px rgba(28, 25, 23, 0.18);
+}
+
+.guide-video-placeholder {
+    background: radial-gradient(circle at top right, #1e3a8a 0%, #0f172a 60%, #1c1917 100%);
+}
+
+.guide-play-circle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: #d4942a;
+    color: #1c1917;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(212, 148, 42, 0.45);
+    transition: transform 0.2s ease;
+}
+
+.guide-play-circle:hover {
+    transform: scale(1.08);
+}
+
+.guide-step-card {
+    background: #ffffff;
+    border: 1px solid #ece7df;
+    border-radius: 16px;
+    padding: 22px 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guide-step-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(28, 25, 23, 0.06);
+}
+
+.guide-step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #1c1917;
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.guide-step-num {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #b45309;
+    letter-spacing: 0.7px;
+    margin-bottom: 4px;
+}
+
+.guide-step-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1c1917;
+    margin-bottom: 8px;
+}
+
+.guide-step-desc {
+    font-size: 0.84rem;
+    color: #57534e;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    flex: 1;
+}
+
+.guide-step-link {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #b45309;
+    text-decoration: none;
+}
+
+.guide-step-link:hover {
+    text-decoration: underline;
+}
+
+.guide-tip-card {
+    background: #ffffff;
+    border: 1px solid #ece7df;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #44403c;
+    height: 100%;
+}
+
+.guide-tip-card i {
+    font-size: 1.05rem;
+    margin-top: 1px;
+    flex-shrink: 0;
+}
+
+.guide-dark-card {
+    background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+    border-radius: 18px;
+    padding: 28px 26px;
+    box-shadow: 0 14px 32px rgba(28, 25, 23, 0.16);
+}
+
+.guide-dark-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.guide-dark-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #e7e5e4;
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+}
+
+.guide-dark-list li:last-child {
+    margin-bottom: 0;
+}
+
+.guide-faq-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #fef3c7;
+    color: #b45309;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.guide-faq-accordion .accordion-item {
+    border: none;
+    border-bottom: 1px solid #ece7df;
+    border-radius: 0 !important;
+}
+
+.guide-faq-accordion .accordion-button {
+    font-weight: 700;
+    font-size: 0.94rem;
+    color: #1c1917;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 16px 4px;
+}
+
+.guide-faq-accordion .accordion-body {
+    font-size: 0.88rem;
+    color: #57534e;
+    padding: 0 4px 16px;
+    line-height: 1.6;
+}
+
+.guide-support-banner {
+    background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+    border-radius: 18px;
+    padding: 26px 28px;
+    box-shadow: 0 12px 28px rgba(28, 25, 23, 0.14);
+}
+
+.guide-support-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 991px) {
+    .guide-stats-box {
+        border-left: none;
+        border-top: 2px solid #ece7df;
+        padding-left: 0;
+        padding-top: 16px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .guide-hero-title {
+        font-size: 1.85rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   3 KHỐI KHÓA HỌC TRANG CHỦ SAU PHẦN PHẢN HỒI
+   -------------------------------------------------------------------------- */
+.home-curated-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #b45309;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.home-curated-eyebrow .eyebrow-dash {
+    width: 18px;
+    height: 2px;
+    background: #d97706;
+    display: inline-block;
+    border-radius: 2px;
+}
+
+.home-curated-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #1c1917;
+    letter-spacing: -0.3px;
+}
+
+.home-curated-seeall {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #78716c;
+    text-decoration: none;
+    transition: color 0.15s ease;
+    white-space: nowrap;
+}
+
+.home-curated-seeall:hover {
+    color: #b45309;
+}

@@ -1,123 +1,111 @@
 <?php
-/**
- * hoc_quiz_submit.php
- * Nhận POST, chấm điểm inline quiz, trả JSON kết quả
- */
 require_once 'config.php';
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['ok' => false, 'msg' => 'Chưa đăng nhập']);
+if (!is_logged_in()) {
+    echo json_encode(['error' => 'Chưa đăng nhập']);
     exit();
 }
 
-$user_id   = (int)$_SESSION['user_id'];
-$exam_id   = (int)($_POST['exam_id']   ?? 0);
-$course_id = (int)($_POST['course_id'] ?? 0);
-$start_time= (int)($_POST['start_time'] ?? time());
-
-if ($exam_id <= 0) {
-    echo json_encode(['ok' => false, 'msg' => 'Thiếu exam_id']);
+$user_id = current_user_id();
+$quiz_id = (int)($_POST['quiz_id'] ?? $_POST['exam_id'] ?? 0);
+if ($quiz_id <= 0) {
+    echo json_encode(['error' => 'Bài kiểm tra không hợp lệ']);
     exit();
 }
 
-// Lấy thông tin đề thi
-$exam_res = $conn->query("SELECT * FROM exams WHERE id = $exam_id AND is_active = 1");
-if (!$exam_res || $exam_res->num_rows === 0) {
-    echo json_encode(['ok' => false, 'msg' => 'Đề thi không tồn tại']);
-    exit();
-}
-$exam = $exam_res->fetch_assoc();
+$stmt = $conn->prepare("SELECT * FROM quizzes WHERE id = ? AND status = 'published' LIMIT 1");
+$stmt->bind_param('i', $quiz_id);
+$stmt->execute();
+$quiz = $stmt->get_result()->fetch_assoc();
+$stmt->close();
 
-// Kiểm tra số lần thi
-$att_res  = $conn->query("SELECT COUNT(*) FROM exam_results WHERE user_id = $user_id AND exam_id = $exam_id");
-$att_used = $att_res ? (int)$att_res->fetch_row()[0] : 0;
-if ($att_used >= (int)$exam['max_attempts']) {
-    echo json_encode(['ok' => false, 'msg' => 'Đã hết lượt thi']);
+if (!$quiz) {
+    echo json_encode(['error' => 'Bài kiểm tra không tồn tại']);
     exit();
 }
 
-// Lấy câu hỏi để chấm
-$q_res = $conn->query("SELECT q.id, q.correct_answer
-    FROM exam_questions eq
-    JOIN questions q ON q.id = eq.question_id
-    WHERE eq.exam_id = $exam_id");
-
-$to_grade = [];
-if ($q_res) {
-    while ($qr = $q_res->fetch_assoc()) {
-        $to_grade[$qr['id']] = strtoupper($qr['correct_answer']);
-    }
+if (!is_admin() && !has_course_access($conn, $user_id, (int)$quiz['course_id'])) {
+    echo json_encode(['error' => 'Bạn chưa được cấp quyền học khóa học này']);
+    exit();
 }
 
-$total_q   = count($to_grade);
-$correct_n = 0;
-$user_ans_map = [];
+$stmt_att = $conn->prepare("SELECT COUNT(*) FROM quiz_attempts WHERE user_id = ? AND quiz_id = ?");
+$stmt_att->bind_param('ii', $user_id, $quiz_id);
+$stmt_att->execute();
+$used = (int)($stmt_att->get_result()->fetch_row()[0] ?? 0);
+$stmt_att->close();
 
-foreach ($to_grade as $qid => $correct_ans) {
-    $user_ans = strtoupper(trim($_POST['answer_' . $qid] ?? ''));
-    $user_ans_map[$qid] = $user_ans;
-    if ($user_ans === $correct_ans) $correct_n++;
+if ($used >= (int)$quiz['max_attempts']) {
+    echo json_encode(['error' => 'Đã hết lượt làm bài']);
+    exit();
 }
 
-$score      = $total_q > 0 ? round(($correct_n / $total_q) * 100) : 0;
-$passed     = $score >= (int)$exam['pass_score'] ? 1 : 0;
-$time_taken = max(0, time() - $start_time);
+$questions = [];
+$stmt_q = $conn->prepare("SELECT id, question_text, option_a, option_b, option_c, option_d, correct_answer, explanation FROM questions WHERE quiz_id = ? ORDER BY sort_order ASC, id ASC");
+$stmt_q->bind_param('i', $quiz_id);
+$stmt_q->execute();
+$q_res = $stmt_q->get_result();
+while ($q = $q_res->fetch_assoc()) {
+    $questions[] = $q;
+}
+$stmt_q->close();
 
-// Lưu kết quả
-$conn->query("INSERT INTO exam_results (exam_id, user_id, score, total_questions, correct_answers, time_taken_seconds, passed)
-    VALUES ($exam_id, $user_id, $score, $total_q, $correct_n, $time_taken, $passed)");
-$result_id = (int)$conn->insert_id;
+$submitted = $_POST['answers'] ?? [];
+$total     = count($questions);
+$correct   = 0;
+$details   = [];
 
-// Lưu từng câu
-foreach ($to_grade as $qid => $correct_ans) {
-    $ua = $conn->real_escape_string($user_ans_map[$qid] ?? '');
-    $is_correct = ($user_ans_map[$qid] === $correct_ans) ? 1 : 0;
-    $conn->query("INSERT INTO exam_answers (result_id, question_id, user_answer, is_correct) VALUES ($result_id, $qid, '$ua', $is_correct)");
+foreach ($questions as $q) {
+    $qid  = (int)$q['id'];
+    $uans = strtoupper(trim($submitted[$qid] ?? ''));
+    $cans = strtoupper(trim($q['correct_answer']));
+    $ok   = ($uans !== '' && $uans === $cans) ? 1 : 0;
+    if ($ok) $correct++;
+    $details[] = [
+        'question_id'    => $qid,
+        'question_text'  => $q['question_text'],
+        'user_answer'    => $uans,
+        'correct_answer' => $cans,
+        'is_correct'     => $ok,
+        'explanation'    => $q['explanation'] ?? '',
+        'options'        => [
+            'A' => $q['option_a'],
+            'B' => $q['option_b'],
+            'C' => $q['option_c'],
+            'D' => $q['option_d'],
+        ],
+    ];
 }
 
-// Lấy chi tiết để trả về
-$detail_res = $conn->query("SELECT ea.question_id, ea.user_answer, ea.is_correct,
-    q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.correct_answer, q.explanation
-    FROM exam_answers ea
-    JOIN questions q ON q.id = ea.question_id
-    WHERE ea.result_id = $result_id
-    ORDER BY ea.id ASC");
+$score      = $total > 0 ? round(($correct / $total) * 100, 2) : 0;
+$passed     = $score >= (int)$quiz['pass_score'] ? 1 : 0;
+$start_ts   = (int)($_POST['start_time'] ?? time());
+$started_at = date('Y-m-d H:i:s', $start_ts);
 
-$detail = [];
-if ($detail_res) {
-    while ($d = $detail_res->fetch_assoc()) {
-        $detail[] = [
-            'question_id'    => (int)$d['question_id'],
-            'question_text'  => $d['question_text'],
-            'option_a'       => $d['option_a'],
-            'option_b'       => $d['option_b'],
-            'option_c'       => $d['option_c'],
-            'option_d'       => $d['option_d'],
-            'user_answer'    => $d['user_answer'],
-            'correct_answer' => strtoupper($d['correct_answer']),
-            'is_correct'     => (int)$d['is_correct'],
-            'explanation'    => $d['explanation'],
-        ];
-    }
+$stmt_ins = $conn->prepare("INSERT INTO quiz_attempts (quiz_id, user_id, score, correct_count, total_questions, passed, status, started_at, submitted_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'completed', ?, NOW())");
+$stmt_ins->bind_param('iidiiis', $quiz_id, $user_id, $score, $correct, $total, $passed, $started_at);
+$stmt_ins->execute();
+$attempt_id = (int)$stmt_ins->insert_id;
+$stmt_ins->close();
+
+$stmt_qa = $conn->prepare("INSERT INTO quiz_answers (attempt_id, question_id, selected_answer, is_correct) VALUES (?, ?, ?, ?)");
+foreach ($details as $d) {
+    $sel = in_array($d['user_answer'], ['A', 'B', 'C', 'D'], true) ? $d['user_answer'] : null;
+    $stmt_qa->bind_param('iisi', $attempt_id, $d['question_id'], $sel, $d['is_correct']);
+    $stmt_qa->execute();
 }
-
-$att_now = $att_used + 1;
-$att_left = max(0, (int)$exam['max_attempts'] - $att_now);
+$stmt_qa->close();
 
 echo json_encode([
-    'ok'          => true,
-    'result_id'   => $result_id,
-    'score'       => $score,
-    'passed'      => $passed,
-    'correct'     => $correct_n,
-    'total'       => $total_q,
-    'time_taken'  => $time_taken,
-    'attempts_left'=> $att_left,
-    'exam'        => [
-        'id'         => (int)$exam['id'],
-        'title'      => $exam['title'],
-        'pass_score' => (int)$exam['pass_score'],
-    ],
-    'detail'      => $detail,
-]);
+    'ok'            => true,
+    'result_id'     => $attempt_id,
+    'score'         => $score,
+    'correct'       => $correct,
+    'total'         => $total,
+    'passed'        => $passed,
+    'pass_score'    => (int)$quiz['pass_score'],
+    'attempts_left' => max(0, (int)$quiz['max_attempts'] - $used - 1),
+    'details'       => $details,
+], JSON_UNESCAPED_UNICODE);
